@@ -2,7 +2,7 @@
 
 *本ドキュメントは、統合分析レポートおよび不在接続レポートで使用される各種指標の数学的定義を記述する。*
 
-**対象グラフ**: watanabe_unified_graph_v5.html（42ノード・107エッジ）
+**対象グラフ**: [渡辺英治 統合思考グラフ v6](weiji-scientist_graph_unified_v6.html)（42ノード・107エッジ）、[渡辺英司 思考グラフ v2](weiji-artist_graph_unified_v2.html)、[統合思考グラフ エッジバンドリング v5](../network/network_edge_bundling_v5.html)
 
 ---
 
@@ -410,7 +410,7 @@ $$d(e) = d_{max} - w(e) \cdot \Delta d$$
 
 - 統合分析レポート: watanabe_unified_analysis_report.md
 - 不在接続レポート: watanabe_absent_connections_report.md
-- インタラクティブグラフ: watanabe_unified_graph_v5.html
+- インタラクティブグラフ: [渡辺英治 統合思考グラフ v6](weiji-scientist_graph_unified_v6.html) / [渡辺英司 思考グラフ v2](weiji-artist_graph_unified_v2.html) / [統合思考グラフ エッジバンドリング v5](../network/network_edge_bundling_v5.html)
 
 ---
 

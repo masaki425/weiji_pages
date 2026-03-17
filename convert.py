@@ -46,6 +46,20 @@ SIDEBAR = """  <nav class="sidebar" id="sidebar">
     </div>
   </nav>"""
 
+KATEX_HEAD = """  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      renderMathInElement(document.body, {
+        delimiters: [
+          {left: "$$", right: "$$", display: true},
+          {left: "$", right: "$", display: false}
+        ]
+      });
+    });
+  </script>"""
+
 TEMPLATE = """<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -53,6 +67,7 @@ TEMPLATE = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{title} — W Eiji 論</title>
   <link rel="stylesheet" href="../style.css">
+{katex}
 </head>
 <body class="reader-page">
 
@@ -104,6 +119,25 @@ CONVERSIONS = {
     ],
 }
 
+# 数式を含むファイル（KaTeXを読み込み、数式を保護する）
+MATH_FILES = {"calculation_methods.md"}
+
+def protect_math(text):
+    """$$...$$ をプレースホルダーに置換してMarkdown変換から保護する"""
+    store = []
+    def replacer(m):
+        store.append(m.group(0))
+        return f"\x00MATH{len(store)-1}\x00"
+    # $$...$$ (display) を先に処理
+    text = re.sub(r'\$\$.+?\$\$', replacer, text, flags=re.DOTALL)
+    return text, store
+
+def restore_math(html, store):
+    """プレースホルダーを元の数式に戻す"""
+    for i, expr in enumerate(store):
+        html = html.replace(f"\x00MATH{i}\x00", expr)
+    return html
+
 def extract_title(html):
     m = re.search(r'<h1>(.*?)</h1>', html)
     if m:
@@ -128,11 +162,21 @@ def main():
             with open(md_path, "r", encoding="utf-8") as f:
                 md_text = f.read()
 
+            # 数式を含むファイルは数式を保護
+            math_store = []
+            if md_name in MATH_FILES:
+                md_text, math_store = protect_math(md_text)
+
             md_converter.reset()
             body = md_converter.convert(md_text)
-            title = extract_title(body)
 
-            html = TEMPLATE.format(title=title, body=body, sidebar=SIDEBAR)
+            # 数式を復元
+            if math_store:
+                body = restore_math(body, math_store)
+
+            title = extract_title(body)
+            katex = KATEX_HEAD if md_name in MATH_FILES else ""
+            html = TEMPLATE.format(title=title, body=body, sidebar=SIDEBAR, katex=katex)
 
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(html)

@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>渡辺英治の思考回路 — 計算方法の数学的定義 — W Eiji 論</title>
   <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      renderMathInElement(document.body, {
+        delimiters: [
+          {left: "$$", right: "$$", display: true},
+          {left: "$", right: "$", display: false}
+        ]
+      });
+    });
+  </script>
 </head>
 <body class="reader-page">
 
@@ -49,7 +62,7 @@
     <article class="reader-content">
 <h1>渡辺英治の思考回路 — 計算方法の数学的定義</h1>
 <p><em>本ドキュメントは、統合分析レポートおよび不在接続レポートで使用される各種指標の数学的定義を記述する。</em></p>
-<p><strong>対象グラフ</strong>: watanabe_unified_graph_v5.html（42ノード・107エッジ）</p>
+<p><strong>対象グラフ</strong>: <a href="weiji-scientist_graph_unified_v6.html">渡辺英治 統合思考グラフ v6</a>（42ノード・107エッジ）、<a href="weiji-artist_graph_unified_v2.html">渡辺英司 思考グラフ v2</a>、<a href="../network/network_edge_bundling_v5.html">統合思考グラフ エッジバンドリング v5</a></p>
 <hr />
 <h2>1. グラフの形式的定義</h2>
 <h3>1.1 基本構造</h3>
@@ -413,7 +426,7 @@
 <h2>3. ノードスコアの定義</h2>
 <h3>3.1 隣接関数</h3>
 <p>ノード v の隣接エッジ集合を以下のように定義：</p>
-<p>$$N(v) = {e \in E \mid v \in e}$$</p>
+<p>$$N(v) = \{e \in E \mid v \in e\}$$</p>
 <p>これを存在/不在で分割：</p>
 <p>$$N_+(v) = N(v) \cap (E_{+}^e \cup E_{+}^l)$$
 $$N_-(v) = N(v) \cap (E_{-}^e \cup E_{-}^l)$$</p>
@@ -480,7 +493,7 @@ $$N_-(v) = N(v) \cap (E_{-}^e \cup E_{-}^l)$$</p>
 <h2>6. 自己調整ノード</h2>
 <h3>6.1 定義</h3>
 <p>ノード v の<strong>サイクル参加度</strong>：</p>
-<p>$$\pi(v) = |{c \in \mathcal{C} \mid v \in c}|$$</p>
+<p>$$\pi(v) = |\{c \in \mathcal{C} \mid v \in c\}|$$</p>
 <p>ここで C は検出されたすべてのサイクルの集合。</p>
 <p><strong>自己調整ノード</strong>の条件：</p>
 <p>$$v \text{ is self-regulating} \iff \pi(v) \geq 2$$</p>
@@ -523,15 +536,15 @@ $$N_-(v) = N(v) \cap (E_{-}^e \cup E_{-}^l)$$</p>
 <h2>7. 不在接続の三分類</h2>
 <p>不在エッジ E₋ = E₋ᵉ ∪ E₋ˡ を、時間的性質によって3つに分類：</p>
 <h3>7.1 離脱（Departed）</h3>
-<p>$$E_D = {e \in E_- \mid \exists t_0 : e \text{ was possible at } t_0 \text{ but not selected}}$$</p>
+<p>$$E_D = \{e \in E_- \mid \exists t_0 : e \text{ was possible at } t_0 \text{ but not selected}\}$$</p>
 <p>過去に存在した可能性が、発展過程で棄却された接続。</p>
 <p><strong>判断基準</strong>: ノートの時系列分析により、ある時点で並列に存在した選択肢のうち、後の著作で発展しなかったものを同定。</p>
 <h3>7.2 保留（Suspended）</h3>
-<p>$$E_S = {e \in E_- \mid e \text{ is recognized as possible but intentionally deferred}}$$</p>
+<p>$$E_S = \{e \in E_- \mid e \text{ is recognized as possible but intentionally deferred}\}$$</p>
 <p>接続可能性を認識しながら未構築のまま保持された関係。</p>
 <p><strong>判断基準</strong>: 両概念が同一文脈に登場しながら接続されていない場合、かつ将来の統合を示唆する記述がある場合に同定。</p>
 <h3>7.3 緊張（Tension）</h3>
-<p>$$E_T = {e \in E_- \mid e \text{ is theoretically necessary but linguistically avoided}}$$</p>
+<p>$$E_T = \{e \in E_- \mid e \text{ is theoretically necessary but linguistically avoided}\}$$</p>
 <p>理論的に接続されるべきだが言語化を回避している関係。</p>
 <p><strong>判断基準</strong>: 論理的に接続が必然であるにもかかわらず、渡辺が一貫して言及を避けている場合に同定。特に、接続が思考の矛盾を露呈する場合に「緊張」と分類。</p>
 <p><strong>統計</strong>:
@@ -604,7 +617,7 @@ $$N_-(v) = N(v) \cap (E_{-}^e \cup E_{-}^l)$$</p>
 <ul>
 <li>統合分析レポート: watanabe_unified_analysis_report.md</li>
 <li>不在接続レポート: watanabe_absent_connections_report.md</li>
-<li>インタラクティブグラフ: watanabe_unified_graph_v5.html</li>
+<li>インタラクティブグラフ: <a href="weiji-scientist_graph_unified_v6.html">渡辺英治 統合思考グラフ v6</a> / <a href="weiji-artist_graph_unified_v2.html">渡辺英司 思考グラフ v2</a> / <a href="../network/network_edge_bundling_v5.html">統合思考グラフ エッジバンドリング v5</a></li>
 </ul>
 <hr />
 <p><em>― Δは沈黙に収束する ―</em></p>
