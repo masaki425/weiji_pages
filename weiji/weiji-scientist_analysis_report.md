@@ -1,7 +1,9 @@
 # 渡辺英治の統合思考回路（沈黙する意識）
 ## Δ（デルタ）の認識論 —— 予測誤差が沈黙に収束するまで
 
-*17冊の手書きノート、2編の学術論文、そして2025年展覧会資料からの再構築*
+*[渡辺英治 統合思考グラフ v6](weiji-scientist_graph_unified_v6.html)に基づく統合分析レポート——17冊の手書きノート、2編の学術論文、そして2025年展覧会資料からの再構築*
+
+*参照: [概念成長ダッシュボード v3](weiji-scientist_growth_dashboard_v3.html) / [デュアルタイムライン v8](weiji-scientist_timeline_dual_v8.html) / [タイムラインツリー v4](weiji-scientist_timeline_tree_v4.html)*
 
 ---
 

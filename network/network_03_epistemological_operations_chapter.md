@@ -2,7 +2,7 @@
 
 ## 「XをXじゃなくす」と「小さな転覆」——否定媒介変換の同等性と差異
 
-*watanabe_edge_bundling_v4.htmlに基づく哲学的分析と構造分析*
+*[統合思考グラフ エッジバンドリング v5](network_edge_bundling_v5.html)に基づく哲学的分析と構造分析*
 
 ---
 

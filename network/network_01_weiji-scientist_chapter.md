@@ -2,7 +2,7 @@
 
 ## 渡辺英治（神経科学者）の思考回路——予測誤差から沈黙する意識へ
 
-*watanabe_edge_bundling_v4.htmlに基づく構造分析*
+*[統合思考グラフ エッジバンドリング v5](network_edge_bundling_v5.html)に基づく構造分析*
 
 ---
 
