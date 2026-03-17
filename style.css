@@ -14,6 +14,7 @@
   --fg4: #aaa;
   --link: #0066cc;
   --coral: #e07050;
+  --accent-border: #999;
   --bg: #fff;
   --bg2: #f7f7f7;
   --border: #e5e5e5;
@@ -54,11 +55,12 @@ body {
 
 .sidebar-header {
   padding: 20px 16px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
+  background: var(--coral);
+  border-bottom: none;
 }
 
 .sidebar-title {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
   color: #fff;
   text-decoration: none;
@@ -155,7 +157,7 @@ body {
 }
 
 .abstract {
-  border-left: 3px solid var(--coral);
+  border-left: 3px solid var(--accent-border);
   padding-left: 16px;
   margin-bottom: 32px;
 }
@@ -174,7 +176,7 @@ body {
   font-weight: 700;
   margin: 32px 0 12px;
   padding-bottom: 6px;
-  border-bottom: 2px solid var(--coral);
+  border-bottom: 2px solid var(--accent-border);
   display: inline-block;
 }
 
@@ -282,7 +284,7 @@ body {
   font-weight: 700;
   margin: 32px 0 8px;
   padding-top: 16px;
-  border-top: 2px solid var(--coral);
+  border-top: 2px solid var(--accent-border);
 }
 
 .reader-content h3 {
@@ -304,7 +306,7 @@ body {
 }
 
 .reader-content blockquote {
-  border-left: 3px solid var(--coral);
+  border-left: 3px solid var(--accent-border);
   padding: 8px 16px;
   margin: 16px 0;
   color: var(--fg2);
