@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>渡辺英治 思考年表 v4 | ノード・エッジの生成と淘汰</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: #58a6ff;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: #8b949e;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        
+        .epigraph {
+            border-left: 3px solid #58a6ff;
+            padding-left: 16px;
+            margin-bottom: 30px;
+            color: #8b949e;
+            font-style: italic;
+        }
+        
+        /* Definition Box */
+        .definition-box {
+            background: rgba(22, 27, 34, 0.8);
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .definition-box h3 {
+            color: #d2a8ff;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        
+        .definition-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        
+        .def-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .def-symbol {
+            font-weight: 600;
+            color: #58a6ff;
+            min-width: 80px;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .control-btn {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            color: #58a6ff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        
+        .control-btn:hover {
+            background: rgba(88, 166, 255, 0.2);
+            border-color: #58a6ff;
+        }
+        
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(22, 27, 34, 0.6);
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-size: 0.8rem;
+        }
+        
+        .legend-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .legend-title {
+            color: #7d8590;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .legend-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+        
+        /* Tree Structure */
+        .tree {
+            padding-left: 20px;
+        }
+        
+        .year {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 10px;
+        }
+        
+        .year::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: -10px;
+            width: 2px;
+            background: #30363d;
+        }
+        
+        .year:last-child::before {
+            bottom: 0;
+            height: 10px;
+        }
+        
+        .year-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 0;
+            user-select: none;
+        }
+        
+        .year-header:hover {
+            opacity: 0.9;
+        }
+        
+        .toggle-icon {
+            position: absolute;
+            left: -45px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #58a6ff;
+            font-size: 0.9rem;
+            transition: transform 0.2s ease;
+        }
+        
+        .year.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .year-label {
+            position: relative;
+            display: inline-block;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+        
+        .year-label::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: #0d1117;
+            border: 2px solid #58a6ff;
+            border-radius: 50%;
+        }
+        
+        .year.explosion .year-label::before {
+            background: #ff7b72;
+            border-color: #ff7b72;
+        }
+        
+        .year.selection .year-label::before {
+            background: #f85149;
+            border-color: #f85149;
+        }
+        
+        .year.highlight .year-label::before {
+            background: #58a6ff;
+        }
+        
+        .phase-name {
+            color: #8b949e;
+            font-size: 0.85rem;
+            margin-left: 8px;
+            font-weight: 400;
+        }
+        
+        .rate-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .rate-badge.explosion {
+            background: rgba(255, 123, 114, 0.2);
+            color: #ff7b72;
+        }
+        
+        .rate-badge.selection {
+            background: rgba(248, 81, 73, 0.2);
+            color: #f85149;
+        }
+        
+        /* Year Content */
+        .year-content {
+            overflow: hidden;
+            max-height: 2000px;
+            transition: max-height 0.3s ease-out, opacity 0.2s ease;
+            opacity: 1;
+        }
+        
+        .year.collapsed .year-content {
+            max-height: 0;
+            opacity: 0;
+        }
+        
+        /* Collapsed Summary */
+        .collapsed-summary {
+            display: none;
+            color: #7d8590;
+            font-size: 0.8rem;
+            margin-left: 12px;
+            padding: 4px 8px;
+            background: rgba(22, 27, 34, 0.4);
+            border-radius: 4px;
+        }
+        
+        .year.collapsed .collapsed-summary {
+            display: inline-flex;
+            gap: 12px;
+        }
+        
+        .collapsed-summary span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* Sections */
+        .section {
+            margin-left: 10px;
+            padding-left: 15px;
+            border-left: 1px solid #21262d;
+            margin-bottom: 12px;
+        }
+        
+        .section-title {
+            font-size: 0.8rem;
+            color: #7d8590;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .icon {
+            font-size: 0.85rem;
+        }
+        
+        .item {
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            padding-left: 8px;
+        }
+        
+        /* Node styles */
+        .node {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .node.core {
+            background: rgba(88, 166, 255, 0.15);
+            color: #58a6ff;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+        
+        .node.new {
+            background: rgba(126, 231, 135, 0.15);
+            color: #7ee787;
+            border: 1px solid rgba(126, 231, 135, 0.3);
+        }
+        
+        .node.departed {
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            text-decoration: line-through;
+        }
+        
+        /* Edge styles */
+        .edge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .edge.generated {
+            background: rgba(63, 185, 80, 0.15);
+            color: #3fb950;
+        }
+        
+        .edge.departed {
+            background: rgba(255, 123, 114, 0.15);
+            color: #ff7b72;
+        }
+        
+        .edge.suspended {
+            background: rgba(249, 199, 79, 0.15);
+            color: #f9c74f;
+        }
+        
+        .edge.tension {
+            background: rgba(210, 168, 255, 0.15);
+            color: #d2a8ff;
+        }
+        
+        .arrow {
+            margin: 0 4px;
+            opacity: 0.7;
+        }
+        
+        .strength {
+            color: #7d8590;
+            font-size: 0.75rem;
+            margin-left: 4px;
+        }
+        
+        .quote {
+            font-style: italic;
+            color: #8b949e;
+            border-left: 2px solid #30363d;
+            padding-left: 12px;
+            margin: 12px 0;
+            font-size: 0.85rem;
+        }
+        
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(22, 27, 34, 0.4);
+            border-radius: 6px;
+        }
+        
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .stat-label {
+            color: #7d8590;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+        }
+        
+        .stat-value.positive {
+            color: #7ee787;
+        }
+        
+        .stat-value.negative {
+            color: #f85149;
+        }
+        
+        .stat-value.neutral {
+            color: #8b949e;
+        }
+        
+        .stat-value.knowledge {
+            color: #d2a8ff;
+        }
+        
+        .stat-value.rate {
+            color: #ff7b72;
+        }
+        
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #21262d;
+            color: #7d8590;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .closing {
+            font-style: italic;
+            margin-bottom: 16px;
+            color: #8b949e;
+        }
+        
+        /* Summary Box */
+        .summary-box {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(22, 27, 34, 0.6);
+            border-radius: 8px;
+        }
+        
+        .summary-box h3 {
+            font-size: 1rem;
+            color: #58a6ff;
+            margin-bottom: 16px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        
+        .summary-item {
+            text-align: center;
+        }
+        
+        .summary-label {
+            color: #7d8590;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+        
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .summary-value.nodes { color: #58a6ff; }
+        .summary-value.edges { color: #3fb950; }
+        .summary-value.knowledge { color: #d2a8ff; }
+        .summary-value.absent { color: #f85149; }
+        .summary-value.departed { color: #ff7b72; }
+        .summary-value.suspended { color: #f9c74f; }
+        .summary-value.tension { color: #d2a8ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>渡辺英治 思考年表 v4</h1>
+        <div class="subtitle">ノード・エッジの生成と淘汰 — 成長率と淘汰率で追跡する20年の認知構造</div>
+        
+        <div class="epigraph">
+            「Consciousness は基本的に silent であり言葉を発することがない」<br>
+            — 2007年3月16日「イミキ」ノート
+        </div>
+        
+        <!-- Definition Box -->
+        <div class="definition-box">
+            <h3>📐 基本定義</h3>
+            <div class="definition-grid">
+                <div class="def-item"><span class="def-symbol">K = N + E存在</span> 知識量</div>
+                <div class="def-item"><span class="def-symbol">成長率</span> ΔK / K(t-1)（1.0 = 倍増）</div>
+                <div class="def-item"><span class="def-symbol">淘汰率</span> ΔE不在 / E不在(t-1)</div>
+                <div class="def-item"><span class="def-symbol">💥 爆発期</span> 成長率 > 1.0</div>
+                <div class="def-item"><span class="def-symbol">🔻 淘汰期</span> 淘汰率 > 1.0</div>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn" onclick="expandAll()">▼ すべて展開</button>
+            <button class="control-btn" onclick="collapseAll()">▶ すべて折りたたむ</button>
+        </div>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-section">
+                <div class="legend-title">ノード</div>
+                <div class="legend-item"><span class="node core">★ 核心</span></div>
+                <div class="legend-item"><span class="node new">新規</span></div>
+                <div class="legend-item"><span class="node departed">周辺化</span></div>
+            </div>
+            <div class="legend-section">
+                <div class="legend-title">エッジ</div>
+                <div class="legend-item"><span class="edge generated">→ 生成</span></div>
+                <div class="legend-item"><span class="edge departed">🦴 離脱</span></div>
+                <div class="legend-item"><span class="edge suspended">⏳ 保留</span></div>
+                <div class="legend-item"><span class="edge tension">🤫 緊張</span></div>
+            </div>
+            <div class="legend-section">
+                <div class="legend-title">期間マーク</div>
+                <div class="legend-item"><span style="color: #ff7b72;">💥</span> 爆発期（成長率 > 1.0）</div>
+                <div class="legend-item"><span style="color: #f85149;">🔻</span> 淘汰期（淘汰率 > 1.0）</div>
+            </div>
+        </div>
+        
+        <!-- Timeline Tree -->
+        <div class="tree">
+            
+            <!-- 2005 -->
+            <div class="year" data-n="1" data-e="2" data-k="3">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2005<span class="phase-name">基盤構築</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 1</span>
+                        <span>E: 2</span>
+                        <span>K: 3</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（1）</div>
+                        <div class="item"><span class="node core">★ Map of Brain（基盤）</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（2）</div>
+                        <div class="item"><span class="edge generated">Map of Brain <span class="arrow">→</span> 視覚系</span></div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">1</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">2</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">3</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value neutral">—</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2007 -->
+            <div class="year explosion" data-n="8" data-e="17" data-k="25" data-growth="7.33">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2007<span class="phase-name">核心概念の爆発</span><span class="rate-badge explosion">💥 成長率 7.33</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 8</span>
+                        <span>E: 17</span>
+                        <span>K: 25</span>
+                        <span style="color: #ff7b72;">💥 7.33</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（7）— 哲学的・詩的概念の集中的出現</div>
+                        <div class="item"><span class="node core">★ Consciousness（核心）</span>「基本的にsilent」</div>
+                        <div class="item"><span class="node core">★ iCore / RF</span>「RFがconsciousnessの実体」</div>
+                        <div class="item"><span class="node new">Binding Problem</span></div>
+                        <div class="item"><span class="node new">黄金比</span></div>
+                        <div class="item"><span class="node new">こころのかたち</span></div>
+                        <div class="item"><span class="node new">π = ∞→有限</span>「無限を有限にする方法」</div>
+                        <div class="item"><span class="node core">★ Kebab Illusion（発見）</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（15）</div>
+                        <div class="item"><span class="edge generated">Consciousness <span class="arrow">→</span> iCore/RF</span> <span class="strength">(0.90)</span> 意識の神経基盤仮説</div>
+                        <div class="item"><span class="edge generated">Consciousness <span class="arrow">→</span> Binding Problem</span> <span class="strength">(0.70)</span></div>
+                        <div class="item"><span class="edge generated">黄金比 <span class="arrow">→</span> こころのかたち</span> <span class="strength">(0.60)</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🤫</span> 緊張エッジ（3）— Consciousness周辺の「沈黙」</div>
+                        <div class="item"><span class="edge tension">Silent Consciousness <span class="arrow">🤫</span> 言語</span> <span class="strength">(0.95)</span> 最初の緊張</div>
+                        <div class="item"><span class="edge tension">π（無限→有限）<span class="arrow">🤫</span> Consciousness</span> <span class="strength">(0.85)</span></div>
+                    </div>
+                    <div class="quote">「Consciousnessは基本的にsilentであり言葉を発しない」— イミキノート</div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">8</span> <span class="stat-value positive">(+7)</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">17</span> <span class="stat-value positive">(+15)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">25</span> <span class="stat-value positive">(+22)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value rate">7.33 💥</span></div>
+                        <div class="stat"><span class="stat-label">E不在:</span> <span class="stat-value absent">2</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2008 -->
+            <div class="year explosion" data-n="15" data-e="35" data-k="50" data-growth="1.00">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2008<span class="phase-name">計算論的展開</span><span class="rate-badge explosion">💥 成長率 1.00</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 15</span>
+                        <span>E: 35</span>
+                        <span>K: 50</span>
+                        <span style="color: #ff7b72;">💥 1.00</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（7）— 計算論的概念の大量導入</div>
+                        <div class="item"><span class="node core">★ Predictive Coding（核心）</span></div>
+                        <div class="item"><span class="node core">★ Delta Model</span>「Top-down vs Bottom-up」</div>
+                        <div class="item"><span class="node new">Temporal Model / Spatial Model</span></div>
+                        <div class="item"><span class="node new">bPopArt / nPopArt / sPopArt / iPopArt</span></div>
+                        <div class="item"><span class="node new">転倒のレトリック</span>「動くを動くじゃなくす」</div>
+                        <div class="item"><span class="node new">Rotating Snake</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（18）</div>
+                        <div class="item"><span class="edge generated">Predictive Coding <span class="arrow">→</span> Delta Model</span> <span class="strength">(0.95)</span> 核心接続</div>
+                        <div class="item"><span class="edge generated">Delta Model <span class="arrow">→</span> Temporal/Spatial Model</span> <span class="strength">(各0.80)</span></div>
+                        <div class="item"><span class="edge generated">Rotating Snake <span class="arrow">→</span> Pop Art</span> <span class="strength">(0.75)</span></div>
+                        <div class="item"><span class="edge generated">転倒のレトリック <span class="arrow">→</span> 錯視</span> <span class="strength">(0.70)</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🤫</span> 緊張エッジ出現（2）— 数式化への抵抗</div>
+                        <div class="item"><span class="edge tension">「数式化は不正確」<span class="arrow">🤫</span> Predictive Coding</span> <span class="strength">(0.85)</span></div>
+                    </div>
+                    <div class="quote">「Illusion → Pop Art へ!!」「錯視を錯視じゃなくす」</div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">15</span> <span class="stat-value positive">(+7)</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">35</span> <span class="stat-value positive">(+18)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">50</span> <span class="stat-value positive">(+25)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value rate">1.00 💥</span></div>
+                        <div class="stat"><span class="stat-label">E不在:</span> <span class="stat-value absent">2</span></div>
+                        <div class="stat"><span class="stat-label">E/N:</span> <span class="stat-value neutral">2.33</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2010 -->
+            <div class="year" data-n="22" data-e="42" data-k="64" data-growth="0.28">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2010<span class="phase-name">学術的実証期</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 22</span>
+                        <span>E: 42</span>
+                        <span>K: 64</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（7）— Vision Research論文</div>
+                        <div class="item"><span class="node core">★ Vision Research論文</span></div>
+                        <div class="item"><span class="node new">Flash-lag Effect</span></div>
+                        <div class="item"><span class="node new">TD Learning</span></div>
+                        <div class="item"><span class="node new">Dopamine</span></div>
+                        <div class="item"><span class="node new">大脳基底核</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（7）</div>
+                        <div class="item"><span class="edge generated">Predictive Coding <span class="arrow">→</span> Delta Model</span> <span class="strength">(0.90)</span></div>
+                        <div class="item"><span class="edge generated">Delta Model <span class="arrow">→</span> Temporal/Spatial Model</span> <span class="strength">(各0.70)</span></div>
+                        <div class="item"><span class="edge generated">Flash-lag <span class="arrow">→</span> Temporal/Spatial Model</span> <span class="strength">(各0.80)</span></div>
+                        <div class="item"><span class="edge generated">TD Learning <span class="arrow">→</span> Dopamine</span> <span class="strength">(0.90)</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">⏳</span> 保留・緊張エッジ出現（4）</div>
+                        <div class="item"><span class="edge suspended">Flash-lag <span class="arrow">⏳</span> Consciousness</span> <span class="strength">(0.80)</span> 後に緊張へ</div>
+                        <div class="item"><span class="edge tension">Temporal Model <span class="arrow">🤫</span> Consciousness</span> <span class="strength">(0.60)</span></div>
+                    </div>
+                    <div class="quote">「Motion signals deflect relative positions of moving objects」— Vision Research 2010</div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">22</span> <span class="stat-value positive">(+7)</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">42</span> <span class="stat-value positive">(+7)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">64</span> <span class="stat-value positive">(+14)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value neutral">0.28</span></div>
+                        <div class="stat"><span class="stat-label">E不在:</span> <span class="stat-value absent">4</span></div>
+                        <div class="stat"><span class="stat-label">E/N:</span> <span class="stat-value neutral">1.91</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2011 -->
+            <div class="year" data-n="24" data-e="45" data-k="69" data-growth="0.08">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2011<span class="phase-name">発展</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 24</span>
+                        <span>E: 45</span>
+                        <span>K: 69</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（2）</div>
+                        <div class="item"><span class="node new">Delta Plus Model（発展）</span></div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">24</span> <span class="stat-value positive">(+2)</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">45</span> <span class="stat-value positive">(+3)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">69</span> <span class="stat-value positive">(+5)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value neutral">0.08</span></div>
+                        <div class="stat"><span class="stat-label">淘汰率:</span> <span class="stat-value neutral">0</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2014 -->
+            <div class="year" data-n="28" data-e="52" data-k="80" data-growth="0.16">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2014<span class="phase-name">構想</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 28</span>
+                        <span>E: 52</span>
+                        <span>K: 80</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（4）</div>
+                        <div class="item"><span class="node new">Fish Eye Project</span></div>
+                        <div class="item"><span class="node new">Singularity</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（7）</div>
+                        <div class="item"><span class="edge generated">Fish Eye <span class="arrow">→</span> Singularity</span> <span class="strength">(0.70)</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">⏳</span> 保留エッジ出現</div>
+                        <div class="item"><span class="edge suspended">Fish Eye <span class="arrow">⏳</span> Consciousness</span> <span class="strength">(0.80)</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🦴</span> 離脱エッジ開始（2）— Pop Art収束の始まり</div>
+                        <div class="item"><span class="edge departed">bPopArt <span class="arrow">🦴</span> iPopArt</span> <span class="strength">(0.60)</span> 収束の兆候</div>
+                    </div>
+                    <div class="quote">「To Singularity」</div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">28</span> <span class="stat-value positive">(+4)</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">52</span> <span class="stat-value positive">(+7)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">80</span> <span class="stat-value positive">(+11)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value neutral">0.16</span></div>
+                        <div class="stat"><span class="stat-label">E不在:</span> <span class="stat-value absent">6</span> <span class="stat-value negative">(+2)</span></div>
+                        <div class="stat"><span class="stat-label">淘汰率:</span> <span class="stat-value neutral">0.50</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2018 -->
+            <div class="year selection" data-n="30" data-e="60" data-k="90" data-selection="1.33">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2018<span class="phase-name">計算論的実証 — 唯一の淘汰爆発</span><span class="rate-badge selection">🔻 淘汰率 1.33</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 30</span>
+                        <span>E: 60</span>
+                        <span>K: 90</span>
+                        <span style="color: #f85149;">🔻 1.33</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（2）</div>
+                        <div class="item"><span class="node core">★ PredNet（実証）</span></div>
+                        <div class="item"><span class="node new">Unsupervised Learning</span></div>
+                        <div class="item"><span class="node core">★ Rotating Snake（論文化）</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（8）</div>
+                        <div class="item"><span class="edge generated">Predictive Coding <span class="arrow">→</span> PredNet</span> <span class="strength">(0.90)</span></div>
+                        <div class="item"><span class="edge generated">PredNet <span class="arrow">→</span> Rotating Snake</span> <span class="strength">(0.85)</span></div>
+                        <div class="item"><span class="edge generated">PredNet <span class="arrow">→</span> Unsupervised Learning</span> <span class="strength">(0.70)</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🦴</span> エッジ離脱（6）— 2010年との断絶、Pop Art収束確定</div>
+                        <div class="item"><span class="edge departed">Flash-lag <span class="arrow">🦴</span> PredNet</span> <span class="strength">(0.75)</span> 2010年論文主題が除外</div>
+                        <div class="item"><span class="edge departed">bPopArt / nPopArt / sPopArt <span class="arrow">🦴</span> iPopArt</span> <span class="strength">(各0.60)</span> iPopArtへ収束確定</div>
+                        <div class="item"><span class="edge departed">Temporal / Spatial Model <span class="arrow">🦴</span> Consciousness</span> <span class="strength">(各0.60)</span> 道具として完結</div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">⊗</span> ノード周辺化</div>
+                        <div class="item"><span class="node departed">bPopArt, nPopArt, sPopArt</span> — iPopArtへ収束</div>
+                        <div class="item"><span class="node departed">Flash-lag</span> — PredNet論文から除外</div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🤫</span> 緊張エッジ表面化</div>
+                        <div class="item"><span class="edge tension">「数式化は不正確」<span class="arrow">🤫</span> PredNet</span> <span class="strength">(0.90)</span> 核心的矛盾</div>
+                    </div>
+                    <div class="quote">「DNNが蛇回転錯視の回転運動を予測した」— Frontiers論文</div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">30</span> <span class="stat-value positive">(+2)</span> / <span class="stat-value negative">-4周辺化</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">60</span> <span class="stat-value positive">(+8)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">90</span> <span class="stat-value positive">(+10)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value neutral">0.13</span></div>
+                        <div class="stat"><span class="stat-label">E不在:</span> <span class="stat-value absent">14</span> <span class="stat-value negative">(+8)</span></div>
+                        <div class="stat"><span class="stat-label">淘汰率:</span> <span class="stat-value rate">1.33 🔻</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2023 -->
+            <div class="year highlight" data-n="36" data-e="72" data-k="108" data-growth="0.20">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2023<span class="phase-name">統合と未来構想期</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 36</span>
+                        <span>E: 72</span>
+                        <span>K: 108</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（6）</div>
+                        <div class="item"><span class="node core">★ EIKEN（LLM+知覚）</span></div>
+                        <div class="item"><span class="node new">PQR Method</span></div>
+                        <div class="item"><span class="node new">White Noise / 夢</span></div>
+                        <div class="item"><span class="node new">Reservoir Computing（体系化）</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（12）</div>
+                        <div class="item"><span class="edge generated">Predictive Coding / TD Learning / Reservoir <span class="arrow">→</span> PQR Method</span> <span class="strength">(各0.80)</span></div>
+                        <div class="item"><span class="edge generated">PredNet <span class="arrow">→</span> EIKEN</span> <span class="strength">(0.80)</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">⏳</span> 保留エッジ増加（4）— 慎重な未架橋</div>
+                        <div class="item"><span class="edge suspended">EIKEN <span class="arrow">⏳</span> Consciousness</span> <span class="strength">(0.85)</span> 最も慎重な保留</div>
+                        <div class="item"><span class="edge suspended">PQR Method <span class="arrow">⏳</span> Consciousness</span> <span class="strength">(0.80)</span></div>
+                        <div class="item"><span class="edge suspended">Wactory <span class="arrow">⏳</span> Consciousness</span> <span class="strength">(0.70)</span></div>
+                        <div class="item"><span class="edge suspended">TD Learning / Reservoir <span class="arrow">⏳</span> Pop Art / iPopArt</span> <span class="strength">(0.70)</span></div>
+                    </div>
+                    <div class="quote">「LLM + New Perception Model = EIKEN」「Prediction + Q-Learning + Reservoir = PQR」</div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">36</span> <span class="stat-value positive">(+6)</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">72</span> <span class="stat-value positive">(+12)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">108</span> <span class="stat-value positive">(+18)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value neutral">0.20</span></div>
+                        <div class="stat"><span class="stat-label">E不在:</span> <span class="stat-value absent">22</span> <span class="stat-value negative">(+8)</span></div>
+                        <div class="stat"><span class="stat-label">淘汰率:</span> <span class="stat-value neutral">0.57</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2025 -->
+            <div class="year highlight" data-n="42" data-e="81" data-k="123" data-growth="0.14">
+                <div class="year-header" onclick="toggleYear(this.parentElement)">
+                    <span class="toggle-icon">▼</span>
+                    <span class="year-label">2025<span class="phase-name">具現化期</span></span>
+                    <span class="collapsed-summary">
+                        <span>N: 42</span>
+                        <span>E: 81</span>
+                        <span>K: 123</span>
+                    </span>
+                </div>
+                <div class="year-content">
+                    <div class="section">
+                        <div class="section-title"><span class="icon">📦</span> ノード生成（6）</div>
+                        <div class="item"><span class="node core">★ Morning Monsters</span></div>
+                        <div class="item"><span class="node core">★ W Eiji（ふたりのワタナベエイジ）</span></div>
+                        <div class="item"><span class="node new">大府市展覧会</span></div>
+                        <div class="item"><span class="node new">見立て（再活性化）</span></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title"><span class="icon">🔗</span> エッジ生成（9）</div>
+                        <div class="item"><span class="edge generated">W Eiji <span class="arrow">→</span> Morning Monsters</span> <span class="strength">(0.95)</span></div>
+                        <div class="item"><span class="edge generated">Morning Monsters <span class="arrow">→</span> 大府市展覧会</span> <span class="strength">(0.90)</span></div>
+                        <div class="item"><span class="edge generated">見立て <span class="arrow">→</span> W Eiji</span> <span class="strength">(0.60)</span></div>
+                        <div class="item"><span class="edge generated">転倒のレトリック <span class="arrow">→</span> W Eiji</span> <span class="strength">(0.70)</span></div>
+                    </div>
+                    <div class="quote">ふたりのワタナベエイジ——「自己を自己じゃなくす」の具現化</div>
+                    <div class="stats">
+                        <div class="stat"><span class="stat-label">N:</span> <span class="stat-value nodes">42</span> <span class="stat-value positive">(+6)</span></div>
+                        <div class="stat"><span class="stat-label">E存在:</span> <span class="stat-value edges">81</span> <span class="stat-value positive">(+9)</span></div>
+                        <div class="stat"><span class="stat-label">K:</span> <span class="stat-value knowledge">123</span> <span class="stat-value positive">(+15)</span></div>
+                        <div class="stat"><span class="stat-label">成長率:</span> <span class="stat-value neutral">0.14</span></div>
+                        <div class="stat"><span class="stat-label">E不在:</span> <span class="stat-value absent">26</span> <span class="stat-value negative">(+4)</span></div>
+                        <div class="stat"><span class="stat-label">淘汰率:</span> <span class="stat-value neutral">0.18</span></div>
+                        <div class="stat"><span class="stat-label">E/N:</span> <span class="stat-value neutral">1.93</span></div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Summary Box -->
+        <div class="summary-box">
+            <h3>📊 20年間の統計サマリー</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">ノード N</div>
+                    <div class="summary-value nodes">42</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">存在エッジ E存在</div>
+                    <div class="summary-value edges">81</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">知識量 K = N + E</div>
+                    <div class="summary-value knowledge">123</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">不在エッジ E不在</div>
+                    <div class="summary-value absent">26</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">🦴 離脱</div>
+                    <div class="summary-value departed">8</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">⏳ 保留</div>
+                    <div class="summary-value suspended">8</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">🤫 緊張</div>
+                    <div class="summary-value tension">10</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">E/N比（平均）</div>
+                    <div class="summary-value" style="color: #f9c74f;">1.98</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #30363d;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                    <div style="padding: 12px; background: rgba(255, 123, 114, 0.1); border-radius: 6px; border: 1px solid rgba(255, 123, 114, 0.3);">
+                        <div style="color: #ff7b72; font-weight: 600; margin-bottom: 8px;">💥 爆発期（成長率 > 1.0）</div>
+                        <div style="font-size: 0.85rem;">
+                            <strong>2007年</strong>：成長率 7.33（K: 3→25）<br>
+                            <strong>2008年</strong>：成長率 1.00（K: 25→50）<br>
+                            <span style="color: #8b949e;">2年間で全知識の38%を生成</span>
+                        </div>
+                    </div>
+                    <div style="padding: 12px; background: rgba(248, 81, 73, 0.1); border-radius: 6px; border: 1px solid rgba(248, 81, 73, 0.3);">
+                        <div style="color: #f85149; font-weight: 600; margin-bottom: 8px;">🔻 淘汰期（淘汰率 > 1.0）</div>
+                        <div style="font-size: 0.85rem;">
+                            <strong>2018年</strong>：淘汰率 1.33（E不在: 6→14）<br>
+                            <span style="color: #8b949e;">唯一の大規模離脱、Flash-lag除外、Pop Art収束</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <div class="closing">
+                沈黙は最初から在った。そして20年を経て、沈黙はさらに深まっている。<br>
+                意識への存在接続が増えると同時に、不在接続も増えている——「語るほどに沈黙が深まる」
+            </div>
+            <div>
+                分析日: 2025年12月19日 | データソース: 25冊の手書きノート、2編の学術論文、統合グラフv5、成長ダッシュボードv3
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        function toggleYear(yearElement) {
+            yearElement.classList.toggle('collapsed');
+        }
+        
+        function expandAll() {
+            document.querySelectorAll('.year').forEach(year => {
+                year.classList.remove('collapsed');
+            });
+        }
+        
+        function collapseAll() {
+            document.querySelectorAll('.year').forEach(year => {
+                year.classList.add('collapsed');
+            });
+        }
+        
+        // 初期状態で全て閉じる
+        document.addEventListener('DOMContentLoaded', function() {
+            collapseAll();
+        });
+    </script>
+</body>
+</html>

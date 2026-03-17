@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>W Eiji 論</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-title">W Eiji 論</a>
+    </div>
+    <div class="sidebar-body">
+
+      <div class="nav-section">
+        <h2 class="nav-heading">Ⅰ　二人のワタナベエイジ</h2>
+        <ul class="nav-list">
+          <li><a href="weiji/weiji-scientist_analysis_report.html">渡辺英治（神経科学者）</a></li>
+          <li><a href="weiji/weiji-artist_analysis_report.html">渡辺英司（現代美術家）</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-section">
+        <h2 class="nav-heading">Ⅱ　統合分析</h2>
+        <ul class="nav-list">
+          <li><a href="network/network_00_introduction_chapter.html">序章　同姓同名の邂逅</a></li>
+          <li><a href="network/network_01_weiji-scientist_chapter.html">治の章　神経科学者の思考回路</a></li>
+          <li><a href="network/network_02_weiji-artist_chapter.html">司の章　現代美術家の思考回路</a></li>
+          <li><a href="network/network_03_epistemological_operations_chapter.html">認識論的操作の章　二つの否定</a></li>
+          <li><a href="network/network_04_encounter_chapter.html">邂逅の章　二人の出会い</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-section">
+        <h2 class="nav-heading">Ⅲ　切り抜きの美学</h2>
+        <ul class="nav-list">
+          <li><a href="kirinuki/kirinuki_00_introduction.html">序章　問いの設定</a></li>
+          <li><a href="kirinuki/kirinuki_01_chapter.html">第一章　「切り抜き」の操作</a></li>
+          <li><a href="kirinuki/kirinuki_02_chapter.html">第二章　操作の表現形式</a></li>
+          <li><a href="kirinuki/kirinuki_03_chapter.html">第三章　頻度と越境</a></li>
+          <li><a href="kirinuki/kirinuki_04_chapter.html">第四章　揺らぎの架け橋</a></li>
+          <li><a href="kirinuki/kirinuki_05_conclusion.html">結論</a></li>
+        </ul>
+      </div>
+
+    </div>
+  </nav>
+
+  <main class="content">
+    <article class="content-body">
+      <h1>W Eiji 論</h1>
+      <p class="lead">二人のワタナベエイジ——思考回路の再構築と比較分析</p>
+
+      <div class="abstract">
+        <p>2025年11月、愛知県大府市で「ワタナベエイジ展 Morning Monsters / W Eiji」が開催された。同姓同名の二人——神経科学者・渡辺英治と現代美術家・渡辺英司——による二人展である。</p>
+        <p>本サイトは、この展覧会を起点として、二人の思考構造をネットワークとして可視化し、その交差と分岐の構造を分析したプロジェクトの記録である。分析の結果、両者は「分類体系から対象を切り抜いて解放する」という共通の操作を持ちながら、正反対の態度で実装していることが明らかになった。</p>
+      </div>
+
+      <h2>構成</h2>
+      <dl class="structure">
+        <dt>Ⅰ　二人のワタナベエイジ</dt>
+        <dd>神経科学者・渡辺英治と現代美術家・渡辺英司、それぞれの思考構造をネットワークとして可視化する。25冊の手書きノートと学術論文から概念を抽出し、インタラクティブなグラフとして構築した。</dd>
+
+        <dt>Ⅱ　統合分析</dt>
+        <dd>二つの思考回路を一枚のグラフに統合し、交差と沈黙の構造を読む。序章から邂逅の章まで、5章構成で展開する。</dd>
+
+        <dt>Ⅲ　切り抜きの美学</dt>
+        <dd>「分類体系から対象を切り抜いて解放する」——両者に共通する操作の構造と、正反対の態度（カテゴリを与える／与えない）の共存を、6章にわたって分析する。</dd>
+      </dl>
+
+      <h2>インタラクティブ可視化</h2>
+      <ul class="vis-list">
+        <li><a href="weiji/weiji-scientist_graph_unified_v6.html">渡辺英治 統合思考グラフ v6</a></li>
+        <li><a href="weiji/weiji-scientist_growth_dashboard_v3.html">概念成長ダッシュボード v3</a></li>
+        <li><a href="weiji/weiji-scientist_timeline_dual_v8.html">デュアルタイムライン v8</a></li>
+        <li><a href="weiji/weiji-scientist_timeline_tree_v4.html">タイムラインツリー v4</a></li>
+        <li><a href="weiji/weiji-artist_graph_unified_v2.html">渡辺英司 思考グラフ v2</a></li>
+        <li><a href="network/network_edge_bundling_v5.html">統合思考グラフ エッジバンドリング v5</a></li>
+      </ul>
+    </article>
+
+    <footer class="content-footer">
+      <p>本サイトは、2025年11月「Morning Monsters / W Eiji」展（愛知県大府市）を起点とする分析プロジェクトの記録である。</p>
+    </footer>
+  </main>
+
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="メニュー">☰</button>
+  <script>
+    document.getElementById('sidebar-toggle').addEventListener('click', () =>
+      document.getElementById('sidebar').classList.toggle('open'));
+  </script>
+
+</body>
+</html>

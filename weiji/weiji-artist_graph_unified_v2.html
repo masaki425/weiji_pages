@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>渡辺英司の思考回路 v1 — 思考フィルター機能</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans JP', sans-serif; background: radial-gradient(ellipse at 20% 80%, #0d1117 0%, #010409 50%, #0a0c10 100%); color: #c9d1d9; min-height: 100vh; overflow: hidden; }
+    #graph-container { width: 100vw; height: 100vh; position: relative; }
+    svg { width: 100%; height: 100%; display: block; }
+    .controls { position: fixed; top: 20px; left: 20px; background: rgba(13, 17, 23, 0.96); padding: 20px; border-radius: 16px; z-index: 100; max-width: 340px; border: 1px solid rgba(48, 54, 61, 0.8); backdrop-filter: blur(20px); max-height: calc(100vh - 40px); overflow-y: auto; }
+    .controls::-webkit-scrollbar { width: 6px; }
+    .controls::-webkit-scrollbar-thumb { background: rgba(139, 148, 158, 0.3); border-radius: 3px; }
+    .controls h1 { font-size: 1.1em; font-weight: 500; margin-bottom: 4px; color: #f0f6fc; }
+    .controls .subtitle { font-size: 0.7em; color: #7d8590; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(48, 54, 61, 0.6); }
+    .control-group { margin-bottom: 14px; }
+    .control-group label { display: block; font-size: 0.65em; color: #7d8590; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .help-hint { font-size: 0.85em; color: #58a6ff; font-weight: 400; text-transform: none; letter-spacing: 0; }
+    .filter-btn { display: block; width: 100%; text-align: left; background: rgba(22, 27, 34, 0.6); border: 1px solid rgba(48, 54, 61, 0.6); color: #8b949e; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 0.78em; margin-bottom: 6px; transition: all 0.2s ease; position: relative; }
+    .filter-btn:hover { background: rgba(33, 38, 45, 0.8); }
+    .filter-btn.active { border-width: 2px; }
+    .filter-btn .filter-title { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .filter-btn .edge-count { position: absolute; top: 8px; right: 8px; background: rgba(110, 118, 129, 0.15); padding: 2px 8px; border-radius: 8px; font-size: 0.65em; }
+    .filter-btn.filter-explicit.active { background: rgba(63, 185, 80, 0.15); border-color: #3fb950; color: #7ee787; }
+    .filter-btn.filter-latent.active { background: rgba(249, 199, 79, 0.15); border-color: #f9c74f; color: #f9c74f; }
+    .filter-btn.filter-art.active { background: rgba(244, 162, 97, 0.15); border-color: #f4a261; color: #f4a261; }
+    .filter-btn.filter-philosophy.active { background: rgba(148, 103, 189, 0.15); border-color: #9467bd; color: #c4a7e7; }
+    .filter-btn.filter-linguistics.active { background: rgba(78, 205, 196, 0.15); border-color: #4ecdc4; color: #4ecdc4; }
+    .filter-btn.filter-conceptual.active { background: rgba(56, 139, 253, 0.15); border-color: #388bfd; color: #79c0ff; }
+    .toggle-btn { background: rgba(22, 27, 34, 0.6); border: 1px solid rgba(48, 54, 61, 0.6); color: #8b949e; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75em; margin-right: 4px; margin-bottom: 4px; }
+    .toggle-btn.active { background: rgba(56, 139, 253, 0.2); border-color: #388bfd; color: #79c0ff; }
+    .reset-btn { background: transparent; border: 1px solid rgba(48, 54, 61, 0.6); color: #7d8590; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.75em; width: 100%; margin-top: 8px; }
+    .reset-btn:hover { background: rgba(22, 27, 34, 0.6); color: #c9d1d9; }
+    .tag-window { position: fixed; bottom: 20px; right: 20px; background: rgba(13, 17, 23, 0.98); padding: 0; border-radius: 12px; border: 1px solid rgba(88, 166, 255, 0.5); z-index: 300; width: 380px; max-width: 90vw; display: none; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .tag-window.visible { display: block; }
+    .tag-window-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid rgba(48, 54, 61, 0.8); background: rgba(22, 27, 34, 0.6); border-radius: 12px 12px 0 0; }
+    .tag-window-header h3 { font-size: 0.95em; font-weight: 600; color: #f0f6fc; margin: 0; }
+    .tag-window-close { background: none; border: none; color: #7d8590; font-size: 1.3em; cursor: pointer; padding: 0; line-height: 1; }
+    .tag-window-close:hover { color: #f0f6fc; }
+    .tag-window-body { padding: 18px; }
+    .tag-window-content { font-size: 0.85em; color: #c9d1d9; line-height: 1.6; margin-bottom: 16px; }
+    .tag-window-examples { font-size: 0.8em; color: #8b949e; padding: 12px; background: rgba(22, 27, 34, 0.5); border-radius: 8px; border-left: 3px solid #58a6ff; }
+    .tag-window-examples strong { color: #c9d1d9; display: block; margin-bottom: 6px; }
+    .tag-window-examples ul { margin: 0; padding-left: 18px; }
+    .tag-window-examples li { margin-bottom: 4px; }
+    .quadrant-diagram { margin: 12px 0; padding: 10px; background: rgba(22, 27, 34, 0.4); border-radius: 8px; }
+    .quadrant-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px; font-size: 0.6em; }
+    .quadrant-cell { padding: 6px; border-radius: 4px; text-align: center; }
+    .quadrant-header { color: #7d8590; padding: 4px; font-size: 0.9em; }
+    .q-explicit { background: rgba(63, 185, 80, 0.2); color: #7ee787; }
+    .q-latent { background: rgba(249, 199, 79, 0.2); color: #f9c74f; }
+    .summary-container { margin: 14px 0; padding: 14px; background: rgba(22, 27, 34, 0.6); border-radius: 10px; border: 1px solid rgba(244, 162, 97, 0.3); }
+    .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .summary-title { font-size: 0.7em; color: #f4a261; text-transform: uppercase; letter-spacing: 0.08em; }
+    .summary-question { font-size: 0.85em; font-weight: 500; color: #f0f6fc; text-align: center; padding: 8px; background: rgba(244, 162, 97, 0.1); border-radius: 6px; border-left: 3px solid #f4a261; }
+    .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; font-size: 0.65em; }
+    .summary-stat { background: rgba(22, 27, 34, 0.5); padding: 6px 8px; border-radius: 6px; display: flex; justify-content: space-between; }
+    .summary-stat-label { color: #7d8590; }
+    .summary-stat-value { color: #f0f6fc; font-family: 'JetBrains Mono', monospace; }
+    .strength-bar-container { margin: 12px 0; padding: 10px; background: rgba(22, 27, 34, 0.4); border-radius: 8px; }
+    .strength-bar-title { font-size: 0.6em; color: #7d8590; margin-bottom: 8px; text-transform: uppercase; }
+    .strength-bar { display: flex; align-items: center; margin-bottom: 6px; }
+    .strength-bar-label { width: 70px; font-size: 0.65em; color: #8b949e; }
+    .strength-bar-track { flex: 1; height: 8px; background: rgba(48, 54, 61, 0.6); border-radius: 4px; position: relative; overflow: hidden; }
+    .strength-bar-fill { position: absolute; left: 0; height: 100%; border-radius: 4px; }
+    .legend { margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(48, 54, 61, 0.6); }
+    .legend-title { font-size: 0.6em; color: #7d8590; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .legend-item { display: flex; align-items: center; margin-bottom: 4px; font-size: 0.7em; }
+    .legend-color { width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .edge-legend { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(48, 54, 61, 0.6); }
+    .edge-legend-title { font-size: 0.6em; color: #7d8590; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .edge-item { display: flex; align-items: center; margin-bottom: 4px; font-size: 0.65em; }
+    .edge-line { width: 30px; height: 0; margin-right: 8px; }
+    .node-detail { position: fixed; top: 20px; right: 20px; background: rgba(13, 17, 23, 0.96); padding: 18px; border-radius: 14px; z-index: 100; width: 300px; max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid rgba(48, 54, 61, 0.8); display: none; }
+    .node-detail.visible { display: block; }
+    .node-detail h3 { font-size: 0.95em; margin-bottom: 2px; color: #f0f6fc; }
+    .node-detail .sublabel { font-size: 0.75em; color: #7d8590; margin-bottom: 10px; }
+    .category-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 0.7em; font-weight: 500; margin-bottom: 8px; }
+    .section-title { font-size: 0.6em; color: #7d8590; text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 0 6px; }
+    .connections-list { font-size: 0.75em; color: #8b949e; }
+    .connection-item { padding: 4px 0; display: flex; align-items: center; gap: 4px; border-left: 3px solid; padding-left: 8px; margin-bottom: 2px; }
+    .connection-item.explicit { border-color: #3fb950; }
+    .connection-item.latent { border-color: #f9c74f; }
+    .connection-strength { font-size: 0.75em; padding: 1px 6px; border-radius: 3px; margin-left: auto; font-family: 'JetBrains Mono', monospace; color: #f4a261; }
+    .close-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #7d8590; font-size: 1.1em; cursor: pointer; }
+    .hub-ranking { position: fixed; top: 20px; right: 20px; background: rgba(13, 17, 23, 0.96); padding: 16px; border-radius: 14px; z-index: 100; width: 280px; border: 1px solid rgba(48, 54, 61, 0.8); max-height: calc(100vh - 40px); overflow-y: auto; }
+    .hub-ranking::-webkit-scrollbar { width: 6px; }
+    .hub-ranking::-webkit-scrollbar-thumb { background: rgba(139, 148, 158, 0.3); border-radius: 3px; }
+    .hub-ranking h2 { font-size: 0.85em; margin-bottom: 12px; color: #f0f6fc; display: flex; align-items: center; gap: 6px; }
+    .hub-ranking .tab-row { display: flex; gap: 4px; margin-bottom: 12px; }
+    .hub-ranking .tab-btn { flex: 1; padding: 6px 8px; border: 1px solid rgba(48, 54, 61, 0.6); background: rgba(22, 27, 34, 0.6); color: #8b949e; border-radius: 6px; cursor: pointer; font-size: 0.7em; text-align: center; }
+    .hub-ranking .tab-btn.active { border-color: #58a6ff; color: #79c0ff; background: rgba(56, 139, 253, 0.15); }
+    .hub-ranking .tab-btn.tab-weighted.active { border-color: #f4a261; color: #f4a261; background: rgba(244, 162, 97, 0.15); }
+    .hub-ranking .tab-btn.tab-degree.active { border-color: #3fb950; color: #7ee787; background: rgba(63, 185, 80, 0.15); }
+    .ranking-item { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(48, 54, 61, 0.4); cursor: pointer; transition: background 0.15s; }
+    .ranking-item:hover { background: rgba(33, 38, 45, 0.6); margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 4px; }
+    .rank-number { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6em; font-weight: 600; margin-right: 8px; }
+    .rank-1 { background: linear-gradient(135deg, #f9c74f, #f4a261); color: #000; }
+    .rank-2 { background: linear-gradient(135deg, #adb5bd, #6c757d); color: #000; }
+    .rank-3 { background: linear-gradient(135deg, #cd7f32, #8b4513); color: #fff; }
+    .rank-other { background: rgba(110, 118, 129, 0.2); color: #7d8590; }
+    .rank-label { font-size: 0.72em; color: #c9d1d9; flex: 1; display: flex; align-items: center; gap: 4px; }
+    .rank-value { font-size: 0.68em; font-family: 'JetBrains Mono', monospace; min-width: 50px; text-align: right; color: #f4a261; }
+    .rank-bar { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+    .rank-bar-track { width: 60px; height: 4px; background: rgba(48, 54, 61, 0.6); border-radius: 2px; overflow: hidden; }
+    .rank-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(to right, #f4a261, #f9c74f); }
+    .edge-tooltip { position: fixed; background: rgba(13, 17, 23, 0.96); padding: 10px 14px; border-radius: 8px; border: 1px solid #f4a261; font-size: 0.75em; color: #f0f6fc; pointer-events: none; z-index: 200; display: none; max-width: 300px; }
+    .edge-tooltip.visible { display: block; }
+    .regulator-marker { stroke: #00ff88; stroke-width: 3; stroke-dasharray: 4 2; fill: none; animation: regulatorPulse 2s ease-in-out infinite; }
+    @keyframes regulatorPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div id="graph-container"></div>
+  <div class="tag-window" id="tagWindow">
+    <div class="tag-window-header">
+      <h3 id="tagWindowTitle">--</h3>
+      <button class="tag-window-close" id="tagWindowClose">×</button>
+    </div>
+    <div class="tag-window-body">
+      <div class="tag-window-content" id="tagWindowContent">--</div>
+      <div class="tag-window-examples" id="tagWindowExamples">--</div>
+    </div>
+  </div>
+  <div class="controls">
+    <h1>🦋 渡辺英司の思考回路</h1>
+    <p class="subtitle">v1 — 思考フィルター機能（明示性 × 思考タイプ）</p>
+    <div class="summary-container">
+      <div class="summary-header"><span class="summary-title">🎯 中心的問い</span></div>
+      <div class="summary-question">「命名が事物を存在化させるのか」</div>
+      <div class="summary-stats">
+        <div class="summary-stat"><span class="summary-stat-label">ノード</span><span class="summary-stat-value" id="statNodes">49</span></div>
+        <div class="summary-stat"><span class="summary-stat-label">エッジ</span><span class="summary-stat-value" id="statEdges">69</span></div>
+        <div class="summary-stat"><span class="summary-stat-label">平均強度</span><span class="summary-stat-value" id="statAvgStrength">0.80</span></div>
+        <div class="summary-stat"><span class="summary-stat-label">明示率</span><span class="summary-stat-value" id="statExplicitRatio">61%</span></div>
+      </div>
+    </div>
+    <div class="quadrant-diagram">
+      <div class="quadrant-grid">
+        <div class="quadrant-header"></div>
+        <div class="quadrant-header">明示的（実線）</div>
+        <div class="quadrant-header">潜在的（点線）</div>
+        <div class="quadrant-header">エッジ</div>
+        <div class="quadrant-cell q-explicit" id="qExplicit">─ 42本</div>
+        <div class="quadrant-cell q-latent" id="qLatent">┄ 27本</div>
+      </div>
+    </div>
+    <div class="strength-bar-container">
+      <div class="strength-bar-title">思考タイプ別エッジ数</div>
+      <div class="strength-bar"><span class="strength-bar-label">アート</span><div class="strength-bar-track"><div class="strength-bar-fill" id="barArt" style="background: #f4a261;"></div></div></div>
+      <div class="strength-bar"><span class="strength-bar-label">哲学</span><div class="strength-bar-track"><div class="strength-bar-fill" id="barPhilosophy" style="background: #9467bd;"></div></div></div>
+      <div class="strength-bar"><span class="strength-bar-label">言語</span><div class="strength-bar-track"><div class="strength-bar-fill" id="barLinguistics" style="background: #4ecdc4;"></div></div></div>
+    </div>
+    <div class="control-group">
+      <label>🔗 エッジ分類 <span class="help-hint">（クリックで詳細）</span></label>
+      <button class="filter-btn filter-explicit active" id="btnExplicit"><span class="filter-title">─ 明示的（E₊ᵉ）</span><span class="edge-count" id="countExplicit">42</span></button>
+      <button class="filter-btn filter-latent active" id="btnLatent"><span class="filter-title">┄ 潜在的（E₊ˡ）</span><span class="edge-count" id="countLatent">27</span></button>
+    </div>
+    <div class="control-group">
+      <label>🏷️ 思考フィルター <span class="help-hint">（クリックで詳細）</span></label>
+      <button class="filter-btn filter-art" id="btnArt"><span class="filter-title">🎨 アート思考</span><span class="edge-count" id="countArt">--</span></button>
+      <button class="filter-btn filter-philosophy" id="btnPhilosophy"><span class="filter-title">📚 哲学思考</span><span class="edge-count" id="countPhilosophy">--</span></button>
+      <button class="filter-btn filter-linguistics" id="btnLinguistics"><span class="filter-title">🗣️ 言語思考</span><span class="edge-count" id="countLinguistics">--</span></button>
+    </div>
+    <div class="control-group">
+      <label>表示オプション</label>
+      <button class="toggle-btn active" id="toggleLabels">ラベル</button>
+      <button class="toggle-btn" id="toggleStrength">強度値</button>
+      <button class="reset-btn" id="resetBtn">🔄 リセット</button>
+    </div>
+    <div class="edge-legend">
+      <div class="edge-legend-title">エッジ凡例</div>
+      <div class="edge-item"><div class="edge-line" style="border-top: 3px solid #7ee787;"></div>明示的</div>
+      <div class="edge-item"><div class="edge-line" style="border-top: 2px dashed #f9c74f;"></div>潜在的</div>
+    </div>
+    <div class="legend">
+      <div class="legend-title">カテゴリ</div>
+      <div class="legend-item"><span class="legend-color" style="background: #388bfd;"></span>美学</div>
+      <div class="legend-item"><span class="legend-color" style="background: #9467bd;"></span>哲学</div>
+      <div class="legend-item"><span class="legend-color" style="background: #4ecdc4;"></span>言語学</div>
+      <div class="legend-item"><span class="legend-color" style="background: #f4a261;"></span>作品</div>
+      <div class="legend-item"><span class="legend-color" style="background: #3fb950;"></span>素材・技法</div>
+      <div class="legend-item"><span class="legend-color" style="background: #f9c74f;"></span>モチーフ</div>
+      <div class="legend-item"><span class="legend-color" style="background: #ff6b6b;"></span>活動</div>
+    </div>
+  </div>
+  <div class="node-detail" id="nodeDetail">
+    <button class="close-btn" id="closeDetail">×</button>
+    <h3 id="detailLabel"></h3>
+    <div class="sublabel" id="detailSublabel"></div>
+    <div class="category-tag" id="detailCategory"></div>
+    <div class="section-title">ハブスコア</div>
+    <div class="connections-list" id="detailScores"></div>
+    <div class="section-title">接続（強度順）</div>
+    <div class="connections-list" id="detailConnections"></div>
+  </div>
+  <div class="hub-ranking" id="hubRanking">
+    <h2>🔥 ハブ・ランキング</h2>
+    <div class="tab-row">
+      <button class="tab-btn tab-weighted active" id="tabWeighted">重み付き</button>
+      <button class="tab-btn tab-degree" id="tabDegree">次数</button>
+    </div>
+    <div id="rankingList"></div>
+  </div>
+  <div class="edge-tooltip" id="edgeTooltip">
+    <div><span id="tooltipSource">--</span> → <span id="tooltipTarget">--</span></div>
+    <div><span id="tooltipType">--</span> / 強度: <span id="tooltipStrength">--</span></div>
+    <div id="tooltipThought" style="font-size: 0.9em; color: #7d8590;"></div>
+  </div>
+  <script>
+    const tagDescriptions = {
+      explicit: { title: "─ 明示的エッジ（E₊ᵉ）", content: "作家本人のステートメント、インタビュー、作品解説などに直接言及されている接続。作家自身が意識的に表現している関係性を示します。", examples: "<strong>例：</strong><ul><li>《蝶瞰図》→ 胡蝶の夢（作家が明示的に言及）</li><li>《名称の庭》→ 命名（テーマとして直接提示）</li><li>図鑑 → 切り抜き（素材と技法の明示的関係）</li></ul>" },
+      latent: { title: "┄ 潜在的エッジ（E₊ˡ）", content: "分析者による推論・解釈に基づく接続。作品や活動のパターンから導き出された、言語化されていないが構造的に存在する関係性を示します。", examples: "<strong>例：</strong><ul><li>言語の恣意性 → 命名（ソシュール理論との接続）</li><li>Merman → 境界（作品が暗示する概念）</li><li>脱構築 → 転倒・逆転（哲学的方法論の共有）</li></ul>" },
+      art: { title: "🎨 アート思考", content: "美学（命名、存在、認識、分類、境界などの美学的原理）、作品、素材・技法、モチーフ、展覧会活動に関わるエッジ。渡辺英司の芸術実践の核心を形成し、美学的問いと具体的な制作プロセス、発表活動を結びつけます。", examples: "<strong>例：</strong><ul><li>命名 → 存在（美学的原理間の関係）</li><li>《名称の庭》→ 針金（素材の選択）</li><li>《蝶瞰図》→ 越後妻有（展示コンテクスト）</li><li>図鑑 → 本（形態的関係）</li></ul>" },
+      philosophy: { title: "📚 哲学思考", content: "荘子、プラトン、デリダ、ハイデガーなどの哲学的概念に関わるエッジ。東洋哲学（胡蝶の夢、物化、万物斉同）と西洋哲学（イデア、模倣、脱構築）の両方を包含し、作品の思想的基盤を形成します。", examples: "<strong>例：</strong><ul><li>胡蝶の夢 → 荘子（出典関係）</li><li>イデア → 模倣（プラトン的関係）</li><li>脱構築 → 境界（デリダ的解体）</li><li>《蝶瞰図》→ 胡蝶の夢（作品と哲学の対話）</li></ul>" },
+      linguistics: { title: "🗣️ 言語思考", content: "ソシュール言語学に関わるエッジ。シニフィアン/シニフィエ、言語の恣意性などの概念を通じて、「命名」という中心テーマの理論的基盤を提供します。すべて潜在的エッジであり、分析者による理論的接続を示します。", examples: "<strong>例：</strong><ul><li>ソシュール → シニフィアン（概念提唱）</li><li>言語の恣意性 → 命名（命名の本質）</li><li>シニフィアン → 命名（名前としての機能）</li><li>Merman → シニフィアン（言葉から像へ）</li></ul>" }
+    };
+    function showTagWindow(tagId) { const info = tagDescriptions[tagId]; if (!info) return; document.getElementById("tagWindowTitle").textContent = info.title; document.getElementById("tagWindowContent").textContent = info.content; document.getElementById("tagWindowExamples").innerHTML = info.examples; document.getElementById("tagWindow").classList.add("visible"); }
+    document.getElementById("tagWindowClose").onclick = () => { document.getElementById("tagWindow").classList.remove("visible"); };
+    const nodes = [
+      { id: "naming", label: "命名", sublabel: "Naming", category: "aesthetic_principles", icon: "📛" },
+      { id: "existence", label: "存在", sublabel: "Existence", category: "aesthetic_principles", icon: "✨" },
+      { id: "recognition", label: "認識", sublabel: "Recognition", category: "aesthetic_principles", icon: "👁️" },
+      { id: "classification", label: "分類", sublabel: "Classification", category: "aesthetic_principles", icon: "📊" },
+      { id: "liberation", label: "解放", sublabel: "Liberation", category: "aesthetic_principles", icon: "🕊️" },
+      { id: "boundary", label: "境界", sublabel: "Boundary", category: "aesthetic_principles", icon: "🚧" },
+      { id: "inversion", label: "転倒・逆転", sublabel: "Inversion", category: "aesthetic_principles", icon: "🔄" },
+      { id: "fragment", label: "断片", sublabel: "Fragment", category: "aesthetic_principles", icon: "🧩" },
+      { id: "accumulation", label: "蓄積", sublabel: "Accumulation", category: "aesthetic_principles", icon: "📚" },
+      { id: "human_nature", label: "人間的自然", sublabel: "Human Nature", category: "aesthetic_principles", icon: "🌿" },
+      { id: "zhuangzi", label: "荘子", sublabel: "Zhuangzi", category: "philosophy", icon: "🧒" },
+      { id: "butterfly_dream", label: "胡蝶の夢", sublabel: "Butterfly Dream", category: "philosophy", icon: "🦋" },
+      { id: "wuhua", label: "物化", sublabel: "Transformation", category: "philosophy", icon: "♻️" },
+      { id: "equality", label: "万物斉同", sublabel: "All Things Equal", category: "philosophy", icon: "⚖️" },
+      { id: "plato", label: "プラトン", sublabel: "Plato", category: "philosophy", icon: "🏛️" },
+      { id: "idea", label: "イデア", sublabel: "Idea/Form", category: "philosophy", icon: "💡" },
+      { id: "mimesis", label: "模倣", sublabel: "Mimesis", category: "philosophy", icon: "🪞" },
+      { id: "derrida", label: "デリダ", sublabel: "Derrida", category: "philosophy", icon: "📝" },
+      { id: "deconstruction", label: "脱構築", sublabel: "Deconstruction", category: "philosophy", icon: "🔨" },
+      { id: "heidegger", label: "ハイデガー", sublabel: "Heidegger", category: "philosophy", icon: "🌲" },
+      { id: "saussure", label: "ソシュール", sublabel: "Saussure", category: "linguistics", icon: "📖" },
+      { id: "signifier", label: "シニフィアン", sublabel: "Signifier", category: "linguistics", icon: "🔤" },
+      { id: "signified", label: "シニフィエ", sublabel: "Signified", category: "linguistics", icon: "💭" },
+      { id: "arbitrariness", label: "言語の恣意性", sublabel: "Arbitrariness", category: "linguistics", icon: "🎲" },
+      { id: "butterflys_eye_view", label: "蝶瞰図", sublabel: "Butterfly's-Eye View", category: "works", icon: "🎨" },
+      { id: "garden_of_names", label: "名称の庭", sublabel: "Garden of Names", category: "works", icon: "🌸" },
+      { id: "merman", label: "Merman", sublabel: "Merman", category: "works", icon: "🧜" },
+      { id: "star_names", label: "星の名前", sublabel: "Star Names", category: "works", icon: "⭐" },
+      { id: "evergreen", label: "常緑", sublabel: "Evergreen", category: "works", icon: "🌲" },
+      { id: "field_guide", label: "図鑑", sublabel: "Field Guide", category: "materials", icon: "📕" },
+      { id: "cutting", label: "切り抜き", sublabel: "Cutting", category: "materials", icon: "✂️" },
+      { id: "wire", label: "針金", sublabel: "Wire", category: "materials", icon: "🔗" },
+      { id: "installation", label: "インスタレーション", sublabel: "Installation", category: "materials", icon: "🏛️" },
+      { id: "cheap_materials", label: "安価な素材", sublabel: "Cheap Materials", category: "materials", icon: "💰" },
+      { id: "butterfly", label: "蝶", sublabel: "Butterfly", category: "motifs", icon: "🦋" },
+      { id: "plants", label: "植物", sublabel: "Plants", category: "motifs", icon: "🌱" },
+      { id: "mushroom", label: "キノコ", sublabel: "Mushroom", category: "motifs", icon: "🍄" },
+      { id: "mermaid", label: "人魚", sublabel: "Mermaid", category: "motifs", icon: "🧜‍♀️" },
+      { id: "book", label: "本", sublabel: "Book", category: "motifs", icon: "📖" },
+      { id: "aichi_triennale", label: "あいちトリエンナーレ", sublabel: "Aichi Triennale", category: "activities", icon: "🎪" },
+      { id: "echigo_tsumari", label: "越後妻有", sublabel: "Echigo-Tsumari", category: "activities", icon: "🏔️" },
+      { id: "tokyo_biennale", label: "東京ビエンナーレ", sublabel: "Tokyo Biennale", category: "activities", icon: "🗼" },
+      { id: "edinburgh", label: "エジンバラ", sublabel: "Edinburgh", category: "activities", icon: "🏴" },
+      { id: "amsterdam", label: "アムステルダム", sublabel: "Amsterdam", category: "activities", icon: "🇳🇱" },
+      { id: "coracle", label: "コラクル", sublabel: "Coracle", category: "activities", icon: "📚" },
+      { id: "suzuki_akio", label: "鈴木昭男", sublabel: "Suzuki Akio", category: "activities", icon: "🎵" },
+      { id: "kenji_taki", label: "ケンジタキギャラリー", sublabel: "Kenji Taki Gallery", category: "activities", icon: "🖼️" },
+      { id: "mori_museum", label: "森美術館「笑い展」", sublabel: "Mori Museum", category: "activities", icon: "😄" },
+      { id: "organizer", label: "オーガナイザー活動", sublabel: "Organizer", category: "activities", icon: "🌐" },
+      { id: "w_eiji", label: "W Eiji展", sublabel: "ふたりのワタナベエイジ", category: "activities", icon: "👥" },
+      { id: "morning_monsters", label: "Morning Monsters", sublabel: "明けのモンスター", category: "activities", icon: "🌅" },
+      { id: "obu_exhibition", label: "大府市展覧会", sublabel: "Obu City Exhibition", category: "activities", icon: "🏛️" },
+      { id: "mitate", label: "見立て", sublabel: "MITATE", category: "aesthetic_principles", icon: "👁️‍🗨️" }
+    ];
+    const categoryInfo = { aesthetic_principles: { name: "美学", color: "#388bfd" }, philosophy: { name: "哲学", color: "#9467bd" }, linguistics: { name: "言語学", color: "#4ecdc4" }, works: { name: "作品", color: "#f4a261" }, materials: { name: "素材・技法", color: "#3fb950" }, motifs: { name: "モチーフ", color: "#f9c74f" }, activities: { name: "活動", color: "#ff6b6b" } };
+    const thoughtColors = { art: "#f4a261", philosophy: "#9467bd", linguistics: "#4ecdc4" };
+    function determineThought(source, target) { const artCats = ["works", "materials", "activities", "motifs", "aesthetic_principles"]; const sn = nodes.find(n => n.id === source); const tn = nodes.find(n => n.id === target); if (!sn || !tn) return "art"; if (artCats.includes(sn.category) || artCats.includes(tn.category)) { if (sn.category === "philosophy" || tn.category === "philosophy") return "philosophy"; if (sn.category === "linguistics" || tn.category === "linguistics") return "linguistics"; return "art"; } if (sn.category === "philosophy" || tn.category === "philosophy") return "philosophy"; if (sn.category === "linguistics" || tn.category === "linguistics") return "linguistics"; return "art"; }
+    const edges = [
+      { source: "naming", target: "existence", strength: 0.95, type: "explicit" },
+      { source: "naming", target: "recognition", strength: 0.95, type: "explicit" },
+      { source: "naming", target: "classification", strength: 0.90, type: "explicit" },
+      { source: "classification", target: "field_guide", strength: 0.95, type: "explicit" },
+      { source: "field_guide", target: "cutting", strength: 0.95, type: "explicit" },
+      { source: "cutting", target: "liberation", strength: 0.90, type: "explicit" },
+      { source: "liberation", target: "existence", strength: 0.75, type: "latent" },
+      { source: "inversion", target: "cutting", strength: 0.90, type: "explicit" },
+      { source: "butterfly_dream", target: "zhuangzi", strength: 0.95, type: "explicit" },
+      { source: "butterfly_dream", target: "boundary", strength: 0.90, type: "explicit" },
+      { source: "butterfly_dream", target: "wuhua", strength: 0.65, type: "latent" },
+      { source: "wuhua", target: "equality", strength: 0.60, type: "latent" },
+      { source: "equality", target: "naming", strength: 0.65, type: "latent" },
+      { source: "plato", target: "idea", strength: 0.60, type: "latent" },
+      { source: "idea", target: "mimesis", strength: 0.60, type: "latent" },
+      { source: "mimesis", target: "field_guide", strength: 0.70, type: "latent" },
+      { source: "mimesis", target: "cutting", strength: 0.70, type: "latent" },
+      { source: "derrida", target: "deconstruction", strength: 0.60, type: "latent" },
+      { source: "deconstruction", target: "boundary", strength: 0.65, type: "latent" },
+      { source: "deconstruction", target: "inversion", strength: 0.55, type: "latent" },
+      { source: "heidegger", target: "existence", strength: 0.55, type: "latent" },
+      { source: "saussure", target: "signifier", strength: 0.60, type: "latent" },
+      { source: "saussure", target: "signified", strength: 0.60, type: "latent" },
+      { source: "signifier", target: "signified", strength: 0.60, type: "latent" },
+      { source: "saussure", target: "arbitrariness", strength: 0.60, type: "latent" },
+      { source: "arbitrariness", target: "naming", strength: 0.90, type: "latent" },
+      { source: "signifier", target: "naming", strength: 0.65, type: "latent" },
+      { source: "signified", target: "recognition", strength: 0.60, type: "latent" },
+      { source: "butterflys_eye_view", target: "butterfly", strength: 0.95, type: "explicit" },
+      { source: "butterflys_eye_view", target: "butterfly_dream", strength: 0.95, type: "explicit" },
+      { source: "butterflys_eye_view", target: "inversion", strength: 0.90, type: "explicit" },
+      { source: "butterflys_eye_view", target: "naming", strength: 0.90, type: "explicit" },
+      { source: "butterflys_eye_view", target: "field_guide", strength: 0.95, type: "explicit" },
+      { source: "butterflys_eye_view", target: "cutting", strength: 0.95, type: "explicit" },
+      { source: "butterflys_eye_view", target: "installation", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "plants", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "mushroom", strength: 0.85, type: "explicit" },
+      { source: "garden_of_names", target: "naming", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "human_nature", strength: 0.90, type: "explicit" },
+      { source: "garden_of_names", target: "field_guide", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "wire", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "accumulation", strength: 0.85, type: "explicit" },
+      { source: "merman", target: "mermaid", strength: 0.95, type: "explicit" },
+      { source: "merman", target: "boundary", strength: 0.85, type: "latent" },
+      { source: "merman", target: "signifier", strength: 0.90, type: "latent" },
+      { source: "merman", target: "inversion", strength: 0.65, type: "latent" },
+      { source: "star_names", target: "naming", strength: 0.85, type: "explicit" },
+      { source: "evergreen", target: "boundary", strength: 0.60, type: "latent" },
+      { source: "field_guide", target: "book", strength: 0.95, type: "explicit" },
+      { source: "cutting", target: "fragment", strength: 0.90, type: "explicit" },
+      { source: "fragment", target: "accumulation", strength: 0.80, type: "latent" },
+      { source: "wire", target: "installation", strength: 0.80, type: "explicit" },
+      { source: "cheap_materials", target: "field_guide", strength: 0.55, type: "latent" },
+      { source: "cheap_materials", target: "wire", strength: 0.50, type: "latent" },
+      { source: "butterfly", target: "wuhua", strength: 0.90, type: "explicit" },
+      { source: "butterfly", target: "plants", strength: 0.60, type: "latent" },
+      { source: "mermaid", target: "butterfly_dream", strength: 0.55, type: "latent" },
+      { source: "book", target: "cutting", strength: 0.90, type: "explicit" },
+      { source: "butterflys_eye_view", target: "echigo_tsumari", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "aichi_triennale", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "tokyo_biennale", strength: 0.95, type: "explicit" },
+      { source: "garden_of_names", target: "amsterdam", strength: 0.85, type: "explicit" },
+      { source: "tokyo_biennale", target: "suzuki_akio", strength: 0.95, type: "explicit" },
+      { source: "edinburgh", target: "coracle", strength: 0.75, type: "latent" },
+      { source: "coracle", target: "book", strength: 0.90, type: "explicit" },
+      { source: "kenji_taki", target: "merman", strength: 0.90, type: "explicit" },
+      { source: "mori_museum", target: "inversion", strength: 0.65, type: "latent" },
+      { source: "organizer", target: "edinburgh", strength: 0.60, type: "latent" },
+      { source: "organizer", target: "amsterdam", strength: 0.60, type: "latent" },
+      { source: "w_eiji", target: "morning_monsters", strength: 0.95, type: "explicit" },
+      { source: "w_eiji", target: "obu_exhibition", strength: 0.95, type: "explicit" },
+      { source: "w_eiji", target: "inversion", strength: 0.90, type: "explicit" },
+      { source: "w_eiji", target: "naming", strength: 0.85, type: "explicit" },
+      { source: "w_eiji", target: "recognition", strength: 0.85, type: "explicit" },
+      { source: "mitate", target: "w_eiji", strength: 0.90, type: "explicit" },
+      { source: "mitate", target: "recognition", strength: 0.90, type: "explicit" },
+      { source: "mitate", target: "butterflys_eye_view", strength: 0.80, type: "latent" },
+      { source: "mitate", target: "garden_of_names", strength: 0.80, type: "latent" },
+      { source: "morning_monsters", target: "obu_exhibition", strength: 0.95, type: "explicit" },
+      { source: "organizer", target: "obu_exhibition", strength: 0.85, type: "explicit" }
+    ];
+    edges.forEach(e => { e.thought = determineThought(e.source, e.target); });
+    const thoughtCounts = { art: 0, philosophy: 0, linguistics: 0 };
+    edges.forEach(e => thoughtCounts[e.thought]++);
+    const explicitCount = edges.filter(e => e.type === "explicit").length;
+    const latentCount = edges.filter(e => e.type === "latent").length;
+    const avgStrength = (edges.reduce((s,e) => s + e.strength, 0) / edges.length).toFixed(2);
+    const maxThought = Math.max(...Object.values(thoughtCounts));
+    document.getElementById("statNodes").textContent = nodes.length;
+    document.getElementById("statEdges").textContent = edges.length;
+    document.getElementById("statAvgStrength").textContent = avgStrength;
+    document.getElementById("statExplicitRatio").textContent = Math.round(explicitCount / edges.length * 100) + "%";
+    document.getElementById("qExplicit").textContent = `─ ${explicitCount}本`;
+    document.getElementById("qLatent").textContent = `┄ ${latentCount}本`;
+    document.getElementById("countExplicit").textContent = explicitCount;
+    document.getElementById("countLatent").textContent = latentCount;
+    document.getElementById("countArt").textContent = thoughtCounts.art;
+    document.getElementById("countPhilosophy").textContent = thoughtCounts.philosophy;
+    document.getElementById("countLinguistics").textContent = thoughtCounts.linguistics;
+    document.getElementById("barArt").style.width = (thoughtCounts.art / maxThought * 100) + "%";
+    document.getElementById("barPhilosophy").style.width = (thoughtCounts.philosophy / maxThought * 100) + "%";
+    document.getElementById("barLinguistics").style.width = (thoughtCounts.linguistics / maxThought * 100) + "%";
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    function calculateHubScores() { nodes.forEach(n => { let degree = 0, weightedDegree = 0; edges.forEach(e => { if (e.source === n.id || e.target === n.id) { degree++; weightedDegree += e.strength; } }); n.degree = degree; n.weightedDegree = weightedDegree; }); }
+    calculateHubScores();
+    const container = document.getElementById("graph-container");
+    const width = container.clientWidth, height = container.clientHeight;
+    const svg = d3.select("#graph-container").append("svg");
+    const g = svg.append("g");
+    const zoom = d3.zoom().scaleExtent([0.3, 3]).on("zoom", e => g.attr("transform", e.transform));
+    svg.call(zoom);
+    svg.call(zoom.transform, d3.zoomIdentity.translate(width/2, height/2).scale(0.7));
+    const defs = svg.append("defs");
+    defs.append("marker").attr("id", "arrow-explicit").attr("viewBox", "0 -3 6 6").attr("refX", 18).attr("refY", 0).attr("markerWidth", 4).attr("markerHeight", 4).attr("orient", "auto").append("path").attr("d", "M0,-2.5L6,0L0,2.5").attr("fill", "#7ee787");
+    defs.append("marker").attr("id", "arrow-latent").attr("viewBox", "0 -3 6 6").attr("refX", 18).attr("refY", 0).attr("markerWidth", 4).attr("markerHeight", 4).attr("orient", "auto").append("path").attr("d", "M0,-2.5L6,0L0,2.5").attr("fill", "#f9c74f");
+    
+    function getEdgeColor(type, strength) {
+      if (type === "explicit") return `rgba(127, 231, 135, ${0.5 + strength * 0.5})`;
+      return `rgba(249, 199, 79, ${0.4 + strength * 0.5})`;
+    }
+    
+    const simulation = d3.forceSimulation(nodes).force("link", d3.forceLink(edges).id(d => d.id).distance(d => 120 - d.strength * 40).strength(d => d.strength * 0.4)).force("charge", d3.forceManyBody().strength(-350)).force("center", d3.forceCenter(0, 0)).force("collision", d3.forceCollide().radius(45));
+    const link = g.append("g").attr("class", "links").selectAll("line").data(edges).join("line")
+      .attr("stroke", d => getEdgeColor(d.type, d.strength))
+      .attr("stroke-width", d => 1.5 + d.strength * 2.5)
+      .attr("stroke-dasharray", d => d.type === "latent" ? "6,4" : "none")
+      .attr("class", d => `link ${d.type} thought-${d.thought}`)
+      .attr("marker-end", d => d.type === "explicit" ? "url(#arrow-explicit)" : "url(#arrow-latent)")
+      .on("mouseover", function(event, d) { showEdgeTooltip(event, d); d3.select(this).attr("stroke-width", d => 2.5 + d.strength * 3); })
+      .on("mouseout", function(event, d) { hideEdgeTooltip(); d3.select(this).attr("stroke-width", d => 1.5 + d.strength * 2.5); });
+    const strengthLabels = g.append("g").attr("class", "strength-labels").selectAll("text").data(edges).join("text")
+      .attr("text-anchor", "middle").attr("dominant-baseline", "middle")
+      .attr("font-family", "'JetBrains Mono', monospace").attr("font-size", "8px")
+      .attr("fill", d => getEdgeColor(d.type, d.strength))
+      .attr("pointer-events", "none").attr("opacity", 0)
+      .text(d => "+" + d.strength.toFixed(2));
+    const node = g.append("g").attr("class", "nodes").selectAll("g").data(nodes).join("g")
+      .call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
+    
+    // 上位ハブノードを特定（重み付き次数上位6位）
+    const sortedByWeight = [...nodes].sort((a,b) => b.weightedDegree - a.weightedDegree);
+    const regulatorIds = sortedByWeight.slice(0, 6).map(n => n.id);
+    nodes.forEach(n => { n.isRegulator = regulatorIds.includes(n.id); });
+    
+    // 上位ハブに点線マーカーを追加
+    node.filter(d => d.isRegulator).append("circle").attr("class", "regulator-marker").attr("r", 18);
+    
+    const circles = node.append("circle").attr("r", d => d.isRegulator ? 14 : 11)
+      .attr("fill", d => categoryInfo[d.category].color)
+      .attr("stroke", "#21262d").attr("stroke-width", 2).attr("opacity", 0.9).style("cursor", "pointer")
+      .on("click", function(event, d) { event.stopPropagation(); showNodeDetail(event, d); });
+    
+    const nodeLabels = node.append("text").text(d => d.label)
+      .attr("x", d => d.isRegulator ? 18 : 15).attr("y", 4)
+      .attr("fill", "#f0f6fc").attr("font-size", "9px").attr("opacity", 0.9)
+      .style("pointer-events", "none");
+    let showLabels = true, showStrength = false;
+    simulation.on("tick", () => { link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y); strengthLabels.attr("x", d => (d.source.x + d.target.x) / 2).attr("y", d => (d.source.y + d.target.y) / 2); node.attr("transform", d => `translate(${d.x},${d.y})`); });
+    function dragstarted(event) { if (!event.active) simulation.alphaTarget(0.3).restart(); event.subject.fx = event.subject.x; event.subject.fy = event.subject.y; }
+    function dragged(event) { event.subject.fx = event.x; event.subject.fy = event.y; }
+    function dragended(event) { if (!event.active) simulation.alphaTarget(0); event.subject.fx = null; event.subject.fy = null; }
+    function showEdgeTooltip(event, d) { const sn = nodeMap.get(typeof d.source === "object" ? d.source.id : d.source); const tn = nodeMap.get(typeof d.target === "object" ? d.target.id : d.target); document.getElementById("tooltipSource").textContent = sn.label; document.getElementById("tooltipTarget").textContent = tn.label; document.getElementById("tooltipType").textContent = d.type === "explicit" ? "明示的" : "潜在的"; document.getElementById("tooltipStrength").textContent = d.strength.toFixed(2); const thoughtNames = { art: "🎨 アート思考", philosophy: "📚 哲学思考", linguistics: "🗣️ 言語思考" }; document.getElementById("tooltipThought").textContent = thoughtNames[d.thought]; const tooltip = document.getElementById("edgeTooltip"); tooltip.style.left = (event.pageX + 15) + "px"; tooltip.style.top = (event.pageY - 10) + "px"; tooltip.classList.add("visible"); }
+    function hideEdgeTooltip() { document.getElementById("edgeTooltip").classList.remove("visible"); }
+    function showNodeDetail(event, d) {
+      document.getElementById("detailLabel").textContent = (d.icon || "") + " " + d.label;
+      document.getElementById("detailSublabel").textContent = d.sublabel;
+      const catTag = document.getElementById("detailCategory");
+      catTag.textContent = categoryInfo[d.category].name;
+      catTag.style.background = categoryInfo[d.category].color + "30";
+      catTag.style.color = categoryInfo[d.category].color;
+      document.getElementById("detailScores").innerHTML = `
+        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+          <span>次数:</span>
+          <span style="color: #7ee787; font-family: 'JetBrains Mono', monospace;">${d.degree}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+          <span>重み付き:</span>
+          <span style="color: #f9c74f; font-family: 'JetBrains Mono', monospace;">${d.weightedDegree.toFixed(2)}</span>
+        </div>
+      `;
+      const conns = edges.filter(e => {
+        const sid = typeof e.source === "object" ? e.source.id : e.source;
+        const tid = typeof e.target === "object" ? e.target.id : e.target;
+        return sid === d.id || tid === d.id;
+      }).sort((a,b) => b.strength - a.strength);
+      document.getElementById("detailConnections").innerHTML = conns.map(e => {
+        const sid = typeof e.source === "object" ? e.source.id : e.source;
+        const tid = typeof e.target === "object" ? e.target.id : e.target;
+        const oid = sid === d.id ? tid : sid;
+        const on = nodeMap.get(oid);
+        const dir = sid === d.id ? "→" : "←";
+        const color = e.type === "explicit" ? "#7ee787" : "#f9c74f";
+        return `<div class="connection-item ${e.type}"><span style="color:${categoryInfo[on.category].color}">●</span> ${dir} ${on.label}<span class="connection-strength" style="color:${color}">+${e.strength.toFixed(2)}</span></div>`;
+      }).join("");
+      document.getElementById("nodeDetail").classList.add("visible");
+      document.getElementById("hubRanking").style.display = "none";
+      circles.attr("stroke-width", n => n.id === d.id ? 4 : 2).attr("stroke", n => n.id === d.id ? "#f0f6fc" : "#21262d");
+    }
+    
+    document.getElementById("closeDetail").onclick = () => {
+      document.getElementById("nodeDetail").classList.remove("visible");
+      document.getElementById("hubRanking").style.display = "block";
+      circles.attr("stroke-width", 2).attr("stroke", "#21262d");
+    };
+    
+    svg.on("click", () => {
+      document.getElementById("nodeDetail").classList.remove("visible");
+      document.getElementById("hubRanking").style.display = "block";
+      circles.attr("stroke-width", 2).attr("stroke", "#21262d");
+    });
+    let currentTab = "weighted";
+    function renderRanking(tab) { currentTab = tab; let sorted, valueKey, maxVal; if (tab === "weighted") { sorted = [...nodes].sort((a,b) => b.weightedDegree - a.weightedDegree); valueKey = "weightedDegree"; } else { sorted = [...nodes].sort((a,b) => b.degree - a.degree); valueKey = "degree"; } maxVal = sorted[0][valueKey]; document.getElementById("rankingList").innerHTML = sorted.slice(0, 12).map((n, i) => { const val = n[valueKey]; const display = val.toFixed(1); const barW = (val / maxVal) * 100; const rc = i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "rank-other"; return `<div class="ranking-item" data-node-id="${n.id}"><div class="rank-number ${rc}">${i + 1}</div><div class="rank-label">${n.icon || ""} ${n.label}</div><div><div class="rank-value">${display}</div><div class="rank-bar"><div class="rank-bar-track"><div class="rank-bar-fill" style="width:${barW}%"></div></div></div></div></div>`; }).join(""); document.querySelectorAll(".ranking-item").forEach(item => { item.onclick = () => { const nd = nodeMap.get(item.dataset.nodeId); if (nd) showNodeDetail(null, nd); }; }); }
+    document.getElementById("tabWeighted").onclick = function() { document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active")); this.classList.add("active"); renderRanking("weighted"); };
+    document.getElementById("tabDegree").onclick = function() { document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active")); this.classList.add("active"); renderRanking("degree"); };
+    renderRanking("weighted");
+    let showExplicit = true, showLatent = true;
+    const activeThoughts = [];
+    document.getElementById("btnExplicit").onclick = function() { const wasActive = this.classList.contains("active"); this.classList.toggle("active"); showExplicit = this.classList.contains("active"); if (!wasActive) showTagWindow("explicit"); updateVisibility(); };
+    document.getElementById("btnLatent").onclick = function() { const wasActive = this.classList.contains("active"); this.classList.toggle("active"); showLatent = this.classList.contains("active"); if (!wasActive) showTagWindow("latent"); updateVisibility(); };
+    function applyThoughtFilter(thoughtName) {
+      const index = activeThoughts.indexOf(thoughtName);
+      const wasActive = index > -1;
+      if (wasActive) {
+        activeThoughts.splice(index, 1);
+      } else {
+        activeThoughts.push(thoughtName);
+        showTagWindow(thoughtName);
+      }
+      const btnMap = { "art": "btnArt", "philosophy": "btnPhilosophy", "linguistics": "btnLinguistics" };
+      Object.keys(btnMap).forEach(key => {
+        const btn = document.getElementById(btnMap[key]);
+        if (btn) btn.classList.toggle("active", activeThoughts.includes(key));
+      });
+      updateVisibility();
+    }
+    document.getElementById("btnArt").onclick = () => applyThoughtFilter("art");
+    document.getElementById("btnPhilosophy").onclick = () => applyThoughtFilter("philosophy");
+    document.getElementById("btnLinguistics").onclick = () => applyThoughtFilter("linguistics");
+    function updateVisibility() {
+      // テーマフィルターによるノードセット
+      const activeThoughtSet = activeThoughts.length > 0 ? new Set() : null;
+      if (activeThoughtSet) {
+        edges.forEach(e => {
+          if (activeThoughts.includes(e.thought)) {
+            const sid = typeof e.source === "object" ? e.source.id : e.source;
+            const tid = typeof e.target === "object" ? e.target.id : e.target;
+            activeThoughtSet.add(sid);
+            activeThoughtSet.add(tid);
+          }
+        });
+      }
+      
+      // ノードの表示
+      node.transition().duration(300).style("opacity", d => {
+        if (!activeThoughtSet) return 1;
+        return activeThoughtSet.has(d.id) ? 1 : 0.1;
+      });
+      
+      // エッジの表示
+      link.transition().duration(300).attr("opacity", d => {
+        if (d.type === "explicit" && !showExplicit) return 0;
+        if (d.type === "latent" && !showLatent) return 0;
+        
+        // 思考フィルター（ノードベース）
+        if (activeThoughtSet) {
+          const srcId = typeof d.source === "object" ? d.source.id : d.source;
+          const tgtId = typeof d.target === "object" ? d.target.id : d.target;
+          if (!activeThoughtSet.has(srcId) || !activeThoughtSet.has(tgtId)) return 0.05;
+        }
+        return 0.8;
+      });
+      
+      // 強度ラベルの表示
+      strengthLabels.attr("opacity", d => {
+        if (!showStrength) return 0;
+        if (d.type === "explicit" && !showExplicit) return 0;
+        if (d.type === "latent" && !showLatent) return 0;
+        if (activeThoughtSet) {
+          const srcId = typeof d.source === "object" ? d.source.id : d.source;
+          const tgtId = typeof d.target === "object" ? d.target.id : d.target;
+          if (!activeThoughtSet.has(srcId) || !activeThoughtSet.has(tgtId)) return 0;
+        }
+        return 1;
+      });
+      
+      nodeLabels.attr("opacity", showLabels ? 0.9 : 0);
+    }
+    document.getElementById("toggleLabels").onclick = function() { this.classList.toggle("active"); showLabels = this.classList.contains("active"); nodeLabels.attr("opacity", showLabels ? 0.9 : 0); };
+    document.getElementById("toggleStrength").onclick = function() { this.classList.toggle("active"); showStrength = this.classList.contains("active"); strengthLabels.attr("opacity", showStrength ? 1 : 0); };
+    document.getElementById("resetBtn").onclick = () => {
+      showExplicit = true; showLatent = true;
+      activeThoughts.length = 0;
+      document.querySelectorAll(".filter-btn.filter-explicit, .filter-btn.filter-latent").forEach(b => b.classList.add("active"));
+      document.querySelectorAll(".filter-btn.filter-art, .filter-btn.filter-philosophy, .filter-btn.filter-linguistics").forEach(b => b.classList.remove("active"));
+      document.getElementById("toggleLabels").classList.add("active");
+      document.getElementById("toggleStrength").classList.remove("active");
+      showLabels = true; showStrength = false;
+      node.transition().duration(300).style("opacity", 1);
+      link.transition().duration(300).attr("opacity", 0.8);
+      strengthLabels.attr("opacity", 0);
+      nodeLabels.attr("opacity", 0.9);
+      circles.attr("stroke-width", 2).attr("stroke", "#21262d");
+      document.getElementById("nodeDetail").classList.remove("visible");
+      document.getElementById("hubRanking").style.display = "block";
+      document.getElementById("tagWindow").classList.remove("visible");
+    };
+  </script>
+</body>
+</html>

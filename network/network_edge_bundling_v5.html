@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>W Eiji 統合思考グラフ</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=JetBrains+Mono&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans JP', sans-serif; background: radial-gradient(ellipse at center, #0d1117 0%, #010409 100%); color: #c9d1d9; min-height: 100vh; overflow: hidden; }
+    
+    #chart { width: 100vw; height: 100vh; }
+    #chart svg { cursor: grab; }
+    #chart svg:active { cursor: grabbing; }
+    
+    .controls { position: fixed; top: 20px; left: 20px; background: rgba(13, 17, 23, 0.95); padding: 20px; border-radius: 16px; z-index: 100; max-width: 320px; border: 1px solid rgba(48, 54, 61, 0.8); backdrop-filter: blur(20px); max-height: calc(100vh - 40px); overflow-y: auto; }
+    .controls::-webkit-scrollbar { width: 6px; }
+    .controls::-webkit-scrollbar-thumb { background: rgba(139, 148, 158, 0.3); border-radius: 3px; }
+    .controls h1 { font-size: 1.1em; font-weight: 500; margin-bottom: 4px; color: #f0f6fc; }
+    .controls .subtitle { font-size: 0.7em; color: #7d8590; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(48, 54, 61, 0.6); }
+    
+    .stats { padding: 10px; background: rgba(22, 27, 34, 0.4); border-radius: 8px; margin-bottom: 12px; font-size: 0.75em; }
+    .stats-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .stats-label { color: #7d8590; }
+    .stats-value { font-family: 'JetBrains Mono', monospace; color: #58a6ff; }
+    
+    .control-group { margin-bottom: 12px; }
+    .control-group label { display: block; font-size: 0.65em; color: #7d8590; margin-bottom: 6px; text-transform: uppercase; }
+    
+    .slider-container { padding: 10px; background: rgba(22, 27, 34, 0.4); border-radius: 8px; margin-bottom: 10px; }
+    .slider-label { display: flex; justify-content: space-between; font-size: 0.7em; color: #8b949e; margin-bottom: 6px; }
+    .slider-value { font-family: 'JetBrains Mono', monospace; color: #58a6ff; }
+    .slider { width: 100%; height: 6px; border-radius: 3px; background: rgba(48, 54, 61, 0.8); -webkit-appearance: none; cursor: pointer; }
+    .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #58a6ff; cursor: pointer; }
+    .stats-matrix { padding: 10px; background: rgba(22, 27, 34, 0.4); border-radius: 8px; margin-bottom: 10px; }
+    .matrix-title { font-size: 0.75em; color: #8b949e; margin-bottom: 8px; }
+    .matrix-table { width: 100%; border-collapse: collapse; font-size: 0.7em; }
+    .matrix-table th, .matrix-table td { padding: 4px 6px; text-align: center; }
+    .matrix-table th { color: #8b949e; font-weight: normal; font-size: 0.85em; }
+    .matrix-table td { color: #c9d1d9; font-family: 'JetBrains Mono', monospace; }
+    .matrix-table .matrix-label { text-align: left; color: #8b949e; font-family: inherit; }
+    .matrix-table tbody tr:first-child td { border-bottom: 1px solid rgba(48, 54, 61, 0.5); }
+    #nodeScientist, #edgeScientist { color: #58a6ff; }
+    #nodeArtist, #edgeArtist { color: #f78166; }
+    #nodeBridge, #edgeBridge { color: #a371f7; }
+    #nodeTotal, #edgeTotal { color: #7ee787; font-weight: bold; }
+    
+    .btn { display: block; width: 100%; background: rgba(22, 27, 34, 0.6); border: 1px solid rgba(48, 54, 61, 0.6); color: #8b949e; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75em; margin-bottom: 5px; text-align: left; transition: all 0.2s; }
+    .btn:hover { background: rgba(33, 38, 45, 0.8); }
+    .btn.active { border-width: 2px; }
+    .btn.scientist.active { background: rgba(0, 120, 255, 0.2); border-color: #0078ff; color: #0078ff; }
+    .btn.artist.active { background: rgba(255, 165, 0, 0.2); border-color: #ffa500; color: #ffa500; }
+    .btn.bridge.active { background: rgba(0, 255, 100, 0.2); border-color: #00ff64; color: #00ff64; }
+    .btn.direct.active { background: rgba(88, 166, 255, 0.3); border-color: #58a6ff; color: #58a6ff; border-style: solid; }
+    .btn.explicit.active { background: rgba(233, 69, 96, 0.15); border-color: #e94560; color: #ff6b8a; }
+    .btn.latent.active { background: rgba(249, 199, 79, 0.15); border-color: #f9c74f; color: #f9c74f; }
+    .btn.thought { display: flex; align-items: center; gap: 6px; }
+    .btn.thought.science.active { background: rgba(56, 139, 253, 0.2); border-color: #388bfd; color: #58a6ff; }
+    .btn.thought.art.active { background: rgba(233, 69, 96, 0.2); border-color: #e94560; color: #ff6b8a; }
+    .btn.thought.philosophy.active { background: rgba(148, 103, 189, 0.2); border-color: #9467bd; color: #b896db; }
+    .btn.category { display: flex; align-items: center; gap: 6px; }
+    .btn.category.active { background: rgba(139, 148, 158, 0.15); border-color: #8b949e; color: #c9d1d9; }
+    .cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    
+    .legend { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(48, 54, 61, 0.6); }
+    .legend-title { font-size: 0.6em; color: #7d8590; text-transform: uppercase; margin-bottom: 6px; }
+    .legend-item { display: flex; align-items: center; margin-bottom: 3px; font-size: 0.7em; }
+    .legend-color { width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    
+    .node-detail { position: fixed; bottom: 20px; right: 20px; background: rgba(13, 17, 23, 0.95); padding: 16px; border-radius: 14px; z-index: 100; width: 300px; max-height: 500px; overflow-y: auto; border: 1px solid rgba(48, 54, 61, 0.8); display: none; }
+    .node-detail::-webkit-scrollbar { width: 6px; }
+    .node-detail::-webkit-scrollbar-track { background: rgba(33, 38, 45, 0.5); border-radius: 3px; }
+    .node-detail::-webkit-scrollbar-thumb { background: #484f58; border-radius: 3px; }
+    .node-detail.visible { display: block; }
+    .node-detail h3 { font-size: 1em; margin-bottom: 4px; color: #f0f6fc; }
+    .node-detail .sublabel { font-size: 0.75em; color: #7d8590; margin-bottom: 8px; }
+    .category-tag { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.65em; font-weight: 500; margin-bottom: 8px; }
+    .section-title { font-size: 0.6em; color: #7d8590; text-transform: uppercase; margin: 8px 0 4px; }
+    .detail-description { font-size: 0.85em; color: #c9d1d9; background: rgba(22, 27, 34, 0.6); padding: 10px; border-radius: 6px; line-height: 1.6; }
+    .connections-list { font-size: 0.7em; color: #8b949e; }
+    .connection-item { padding: 3px 0; border-left: 3px solid; padding-left: 6px; margin-bottom: 2px; }
+    .close-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #7d8590; font-size: 1.1em; cursor: pointer; }
+    
+    .link { fill: none; pointer-events: stroke; }
+    .link--source { stroke: #3fb950 !important; stroke-opacity: 1 !important; stroke-width: 2.5px !important; }
+    .link--target { stroke: #f85149 !important; stroke-opacity: 1 !important; stroke-width: 2.5px !important; }
+    .link--special { stroke: #ff00ff !important; stroke-width: 3px !important; filter: drop-shadow(0 0 4px #ff00ff); }
+    
+    .node--source text { fill: #3fb950 !important; font-weight: 700; font-size: 11px !important; }
+    .node--target text { fill: #f85149 !important; font-weight: 700; font-size: 11px !important; }
+    .node--source circle { r: 7px; stroke: #3fb950; stroke-width: 3px; filter: drop-shadow(0 0 6px #3fb950); }
+    .node--target circle { r: 7px; stroke: #f85149; stroke-width: 3px; filter: drop-shadow(0 0 6px #f85149); }
+    .node--hover circle { r: 10px !important; stroke: #58a6ff; stroke-width: 4px; filter: drop-shadow(0 0 10px #58a6ff); }
+    .node--hover text { fill: #f0f6fc !important; font-weight: 700; font-size: 12px !important; }
+    
+    .node--faded circle { opacity: 0.15; }
+    .node--faded text { opacity: 0.15; }
+    .link--faded { stroke-opacity: 0.03 !important; }
+    
+    .strength-label { opacity: 0; transition: opacity 0.2s; }
+    .strength-label.label--active { opacity: 1 !important; }
+    .strength-label.label--faded { opacity: 0 !important; }
+    
+    .node--filtered circle { opacity: 0.12; }
+    .node--filtered text { opacity: 0.12; }
+    .node--partial circle { opacity: 0.35; }
+    .node--partial text { opacity: 0.4; }
+    .link--filtered { stroke-opacity: 0.03 !important; }
+    
+    .help { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(13, 17, 23, 0.9); padding: 10px 20px; border-radius: 20px; font-size: 0.72em; color: #7d8590; z-index: 100; }
+    .help span { color: #58a6ff; margin: 0 4px; }
+    
+    .strength-tabs { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(48, 54, 61, 0.6); }
+    .strength-tabs-title { font-size: 0.7em; color: #8b949e; margin-bottom: 8px; }
+    .strength-tab-list { display: flex; flex-wrap: wrap; gap: 4px; }
+    .strength-tab { padding: 3px 8px; font-size: 0.65em; background: rgba(33, 38, 45, 0.6); border: 1px solid #30363d; border-radius: 4px; color: #8b949e; cursor: pointer; transition: all 0.2s; }
+    .strength-tab:hover { background: rgba(48, 54, 61, 0.8); color: #c9d1d9; }
+    .strength-tab.active { background: #58a6ff30; border-color: #58a6ff; color: #58a6ff; }
+    
+    .filter-help { position: fixed; bottom: 60px; right: 20px; width: 320px; max-height: 400px; background: rgba(13, 17, 23, 0.95); border: 1px solid #30363d; border-radius: 12px; padding: 15px; z-index: 100; display: none; }
+    .filter-help.visible { display: block; }
+    .filter-help h3 { margin: 0 0 12px 0; color: #f0f6fc; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center; }
+    .filter-help .close-btn { background: none; border: none; color: #7d8590; font-size: 1.2em; cursor: pointer; padding: 0; line-height: 1; }
+    .filter-help .close-btn:hover { color: #f0f6fc; }
+    .filter-help-content { font-size: 0.72em; color: #8b949e; line-height: 1.7; max-height: 320px; overflow-y: auto; }
+    .filter-help-content::-webkit-scrollbar { width: 6px; }
+    .filter-help-content::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    .filter-help-content p { margin: 0 0 8px 0; }
+    .filter-help-content ul { margin: 8px 0; padding-left: 18px; }
+    .filter-help-content li { margin-bottom: 4px; }
+    .filter-help-content strong { color: #c9d1d9; }
+    .filter-help-toggle { position: fixed; bottom: 60px; right: 20px; background: rgba(13, 17, 23, 0.9); border: 1px solid #30363d; border-radius: 8px; padding: 8px 12px; font-size: 0.75em; color: #8b949e; cursor: pointer; z-index: 99; transition: all 0.2s; }
+    .filter-help-toggle:hover { background: rgba(33, 38, 45, 0.9); color: #c9d1d9; border-color: #58a6ff; }
+    
+    .hub-ranking { position: fixed; top: 20px; right: 20px; width: 280px; max-height: 400px; background: rgba(13, 17, 23, 0.95); border: 1px solid #30363d; border-radius: 12px; padding: 15px; z-index: 100; }
+    .hub-ranking h3 { margin: 0 0 10px 0; color: #f0f6fc; font-size: 0.9em; }
+    .ranking-list { max-height: 300px; overflow-y: auto; }
+    .ranking-list::-webkit-scrollbar { width: 6px; }
+    .ranking-list::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    .ranking-item { display: flex; align-items: center; padding: 6px 8px; margin-bottom: 4px; background: rgba(33, 38, 45, 0.5); border-radius: 6px; border-left: 3px solid #30363d; cursor: pointer; transition: all 0.2s; }
+    .ranking-item:hover { background: rgba(33, 38, 45, 0.9); transform: translateX(2px); }
+    .ranking-rank { width: 22px; font-weight: bold; font-size: 0.75em; color: #7d8590; }
+    .ranking-rank.top3 { color: #f9c74f; }
+    .ranking-info { flex: 1; min-width: 0; }
+    .ranking-name { font-weight: 500; color: #c9d1d9; font-size: 0.75em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ranking-category { font-size: 0.6em; margin-top: 1px; }
+    .ranking-stats { text-align: right; font-size: 0.65em; margin-left: 8px; }
+    .ranking-main-stat { font-weight: bold; font-size: 1.1em; color: #f0f6fc; }
+    .ranking-sub-stats { color: #7d8590; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  
+  <div class="controls">
+    <h1>🎯 W Eiji 統合思考グラフ</h1>
+    <p class="subtitle">神経科学者と芸術家——知覚と認識をめぐる散策</p>
+    
+    <div class="stats-matrix">
+      <div class="matrix-title">📊 思考グラフ統計</div>
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>🔬 治思考</th>
+            <th>🎨 司思考</th>
+            <th>✨ 邂逅</th>
+            <th>合計</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="matrix-label">ノード</td>
+            <td id="nodeScientist">-</td>
+            <td id="nodeArtist">-</td>
+            <td id="nodeBridge">-</td>
+            <td id="nodeTotal">-</td>
+          </tr>
+          <tr>
+            <td class="matrix-label">エッジ</td>
+            <td id="edgeScientist">-</td>
+            <td id="edgeArtist">-</td>
+            <td id="edgeBridge">-</td>
+            <td id="edgeTotal">-</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="control-group">
+      <label>👤 領域フィルター</label>
+      <button class="btn scientist active" id="btnScientist">🔬 渡辺英治（神経科学者）</button>
+      <button class="btn artist active" id="btnArtist">🎨 渡辺英司（芸術家）</button>
+      <button class="btn bridge active" id="btnBridge">✨ 邂逅</button>
+    </div>
+    
+    <div class="control-group">
+      <label>🔗 エッジ分類</label>
+      <button class="btn explicit active" id="btnExplicit">━ 明示的エッジ</button>
+      <button class="btn latent active" id="btnLatent">┄ 潜在的エッジ</button>
+    </div>
+    
+    <div class="control-group">
+      <label>🧠 思考フィルター</label>
+      <button class="btn thought science active" id="btnThoughtScience">🔬 サイエンス思考</button>
+      <button class="btn thought art active" id="btnThoughtArt">🎨 アート思考</button>
+      <button class="btn thought philosophy active" id="btnThoughtPhilosophy">📖 哲学思考</button>
+    </div>
+    
+    <div class="control-group">
+      <label>📂 カテゴリーフィルター</label>
+      <button class="btn category active" id="btnComputation"><span class="cat-dot" style="background:#388bfd;"></span>計算・予測</button>
+      <button class="btn category active" id="btnPerception"><span class="cat-dot" style="background:#f9c74f;"></span>知覚・認知</button>
+      <button class="btn category active" id="btnPhilosophy"><span class="cat-dot" style="background:#9467bd;"></span>哲学・存在</button>
+      <button class="btn category active" id="btnLanguage"><span class="cat-dot" style="background:#4ecdc4;"></span>言語・記号</button>
+      <button class="btn category active" id="btnAesthetics"><span class="cat-dot" style="background:#e94560;"></span>美学・変換</button>
+      <button class="btn category active" id="btnWorks"><span class="cat-dot" style="background:#f4a261;"></span>作品・素材</button>
+      <button class="btn category active" id="btnActivities"><span class="cat-dot" style="background:#3fb950;"></span>活動・場</button>
+    </div>
+    
+    <div class="slider-container">
+      <div class="slider-label">
+        <span>🔗 バンドリング強度</span>
+        <span class="slider-value" id="tensionVal">0.85</span>
+      </div>
+      <input type="range" class="slider" id="tension" min="0" max="1" step="0.01" value="0.85">
+    </div>
+    
+    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(48, 54, 61, 0.6); font-size: 0.65em; color: #7d8590;">
+      エッジ色=発信元ノード色（カテゴリー）<br>
+      <span style="color: #ff00ff;">■マゼンタ</span>=唯一の明示的直接接続（Xをxじゃなくす→小さな転覆）<br>
+      ホバー: <span style="color: #3fb950;">緑=発信</span> / <span style="color: #f85149;">赤=受信</span>
+    </div>
+    
+    <div class="strength-tabs">
+      <div class="strength-tabs-title">📏 強度値表示</div>
+      <div class="strength-tab-list">
+        <div class="strength-tab active" id="toggleStrengthLabel">オン</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="hub-ranking">
+    <h3>🏆 ハブランキング（乗算スコア）</h3>
+    <div class="ranking-list" id="rankingList"></div>
+  </div>
+  
+  <div class="node-detail" id="nodeDetail">
+    <button class="close-btn" onclick="document.getElementById('nodeDetail').classList.remove('visible')">×</button>
+    <h3 id="detailName">--</h3>
+    <div class="sublabel" id="detailSublabel">--</div>
+    <div class="category-tag" id="detailCategory">--</div>
+    <div class="section-title">説明</div>
+    <div class="detail-description" id="detailDescription">--</div>
+    <div class="section-title">接続</div>
+    <div class="connections-list" id="detailConnections">--</div>
+  </div>
+  
+  <div class="help">
+    <span>ホバー</span>で接続表示 ｜<span>クリック</span>で詳細 ｜<span>ドラッグ</span>で移動 ｜<span>スクロール</span>でズーム ｜<span>ダブルクリック</span>でリセット
+  </div>
+  
+  <button class="filter-help-toggle" id="filterHelpToggle" style="display:none;">❓ フィルター説明</button>
+  
+  <div class="filter-help" id="filterHelp">
+    <h3 id="filterHelpTitle">📖 フィルター説明<button class="close-btn" onclick="document.getElementById('filterHelp').classList.remove('visible')">×</button></h3>
+    <div class="filter-help-content" id="filterHelpContent">
+    </div>
+  </div>
+
+<script>
+// ========== ノードデータ ==========
+const categoryColors = {
+  computation: "#388bfd",
+  perception: "#f9c74f", 
+  philosophy: "#9467bd",
+  language: "#4ecdc4",
+  aesthetics: "#e94560",
+  works: "#f4a261",
+  activities: "#3fb950"
+};
+
+const categoryLabels = {
+  computation: "計算・予測",
+  perception: "知覚・認知",
+  philosophy: "哲学・存在",
+  language: "言語・記号",
+  aesthetics: "美学・変換",
+  works: "作品・素材",
+  activities: "活動・場"
+};
+
+const allNodes = [
+  // 計算・予測 (神経科学者)
+  { id: "predictive_coding", label: "予測符号化", sublabel: "Predictive Coding", category: "computation", domain: "scientist" },
+  { id: "delta_model", label: "デルタモデル", sublabel: "Delta Model", category: "computation", domain: "scientist" },
+  { id: "prednet", label: "PredNet", sublabel: "予測ニューラルネット", category: "computation", domain: "scientist" },
+  { id: "td_learning", label: "TD学習", sublabel: "時間差学習", category: "computation", domain: "scientist" },
+  { id: "reservoir", label: "リザバー計算", sublabel: "Reservoir Computing", category: "computation", domain: "scientist" },
+  { id: "unsupervised", label: "教師なし学習", sublabel: "Unsupervised Learning", category: "computation", domain: "scientist" },
+  { id: "pqr_method", label: "PQR法", sublabel: "Prediction+Q+Reservoir", category: "computation", domain: "scientist" },
+  { id: "eiken", label: "EIKEN", sublabel: "LLM+Perception", category: "computation", domain: "scientist" },
+  { id: "singularity", label: "Singularity", sublabel: "特異点", category: "computation", domain: "scientist" },
+  { id: "basal_ganglia", label: "大脳基底核", sublabel: "Basal Ganglia", category: "computation", domain: "scientist" },
+  { id: "dopamine", label: "ドーパミン", sublabel: "Dopamine", category: "computation", domain: "scientist" },
+  { id: "perturbation", label: "摂動", sublabel: "Perturbation", category: "computation", domain: "scientist" },
+  
+  // 知覚・認知 (神経科学者)
+  { id: "rotating_snake", label: "蛇回転錯視", sublabel: "Rotating Snake", category: "perception", domain: "scientist" },
+  { id: "kebab_illusion", label: "ケバブ錯視", sublabel: "Kebab Illusion", category: "perception", domain: "scientist" },
+  { id: "flash_lag", label: "フラッシュラグ", sublabel: "Flash-lag Effect", category: "perception", domain: "scientist" },
+  { id: "line_motion", label: "線運動錯視", sublabel: "Line Motion", category: "perception", domain: "scientist" },
+  { id: "temporal_model", label: "時間モデル", sublabel: "Temporal Model", category: "perception", domain: "scientist" },
+  { id: "spatial_model", label: "空間モデル", sublabel: "Spatial Model", category: "perception", domain: "scientist" },
+  { id: "100ms", label: "100ms窓", sublabel: "知覚窓", category: "perception", domain: "scientist" },
+  { id: "consciousness", label: "意識", sublabel: "Consciousness", category: "perception", domain: "scientist" },
+  { id: "icore", label: "iCore/RF", sublabel: "網様体仮説", category: "perception", domain: "scientist" },
+  { id: "binding", label: "バインディング", sublabel: "Binding Problem", category: "perception", domain: "scientist" },
+  { id: "attention", label: "注意", sublabel: "Attention", category: "perception", domain: "scientist" },
+  { id: "object_file", label: "オブジェクトファイル", sublabel: "Object File", category: "perception", domain: "scientist" },
+  { id: "silent_consciousness", label: "沈黙する意識", sublabel: "Silent Consciousness", category: "perception", domain: "scientist" },
+  { id: "motor_loop", label: "運動-感覚ループ", sublabel: "Motor Loop", category: "perception", domain: "scientist" },
+  { id: "kokoro", label: "こころ", sublabel: "Kokoro", category: "perception", domain: "scientist" },
+  { id: "white_noise", label: "White Noise/夢", sublabel: "ノイズと夢", category: "perception", domain: "scientist" },
+  
+  // 哲学・存在 (芸術家)
+  { id: "butterfly_dream", label: "胡蝶の夢", sublabel: "Butterfly Dream", category: "philosophy", domain: "artist" },
+  { id: "existence", label: "存在", sublabel: "Existence", category: "philosophy", domain: "artist" },
+  { id: "boundary", label: "境界", sublabel: "Boundary", category: "philosophy", domain: "artist" },
+  { id: "recognition", label: "認識", sublabel: "Recognition", category: "philosophy", domain: "artist" },
+  
+  // 言語・記号 (芸術家)
+  { id: "naming", label: "命名", sublabel: "Naming", category: "language", domain: "artist" },
+  { id: "classification", label: "分類", sublabel: "Classification", category: "language", domain: "artist" },
+  { id: "segmentation_device", label: "分節装置", sublabel: "Segmentation Device", category: "language", domain: "artist" },
+  { id: "pre_linguistic", label: "前言語的", sublabel: "Pre-linguistic", category: "language", domain: "scientist" },
+  { id: "formalization", label: "数式化の限界", sublabel: "Formalization", category: "language", domain: "scientist" },
+  
+  // 美学・変換 (神経科学者)
+  { id: "pop_art", label: "Pop Art", sublabel: "ポップアート", category: "aesthetics", domain: "scientist" },
+  { id: "bpop_art", label: "Bio Pop Art", sublabel: "生物学的", category: "aesthetics", domain: "scientist" },
+  { id: "ipop_art", label: "Illusion Pop Art", sublabel: "錯視的", category: "aesthetics", domain: "scientist" },
+  { id: "npop_art", label: "Neuro Pop Art", sublabel: "神経科学的", category: "aesthetics", domain: "scientist" },
+  { id: "spop_art", label: "Scientific Pop Art", sublabel: "科学的", category: "aesthetics", domain: "scientist" },
+  { id: "transform", label: "XをXじゃなくす", sublabel: "Transform", category: "aesthetics", domain: "scientist" },
+  { id: "pi_infinity", label: "πと無限", sublabel: "Pi & Infinity", category: "aesthetics", domain: "scientist" },
+  { id: "golden_ratio", label: "黄金比", sublabel: "Golden Ratio", category: "aesthetics", domain: "scientist" },
+  
+  // 美学・変換 (架橋)
+  { id: "mitate", label: "見立て", sublabel: "Mitate", category: "aesthetics", domain: "both" },
+  { id: "negation_mediation", label: "否定媒介変換", sublabel: "Negation Mediation", category: "aesthetics", domain: "scientist" },
+  
+  // 美学・変換 (芸術家)
+  { id: "small_subversion", label: "小さな転覆", sublabel: "Small Subversion", category: "aesthetics", domain: "artist" },
+  { id: "fragment", label: "断片", sublabel: "Fragment", category: "aesthetics", domain: "artist" },
+  { id: "accumulation", label: "蓄積", sublabel: "Accumulation", category: "aesthetics", domain: "artist" },
+  { id: "mimesis", label: "ミメーシス", sublabel: "Mimesis", category: "aesthetics", domain: "artist" },
+  { id: "deconstruction", label: "脱構築", sublabel: "Deconstruction", category: "aesthetics", domain: "artist" },
+  { id: "liberation", label: "解放", sublabel: "Liberation", category: "aesthetics", domain: "artist" },
+  { id: "liberated_existence", label: "解放された存在", sublabel: "Liberated Existence", category: "aesthetics", domain: "artist" },
+  { id: "cutting", label: "切り抜き", sublabel: "Cutting", category: "aesthetics", domain: "artist" },
+  { id: "cheap_materials", label: "安価な素材", sublabel: "Cheap Materials", category: "aesthetics", domain: "artist" },
+  
+  // 作品・素材 (芸術家)
+  { id: "butterflys_eye_view", label: "蝶瞰図", sublabel: "Butterfly's Eye View", category: "works", domain: "artist" },
+  { id: "garden_of_names", label: "名前の庭", sublabel: "Garden of Names", category: "works", domain: "artist" },
+  { id: "merman", label: "マーマン", sublabel: "Merman", category: "works", domain: "artist" },
+  { id: "star_names", label: "星の名前", sublabel: "Star Names", category: "works", domain: "artist" },
+  { id: "field_guide", label: "図鑑", sublabel: "Field Guide", category: "works", domain: "artist" },
+  // モチーフ・素材
+  { id: "butterfly", label: "蝶", sublabel: "Butterfly", category: "works", domain: "artist" },
+  { id: "plants", label: "植物", sublabel: "Plants", category: "works", domain: "artist" },
+  { id: "mermaid", label: "人魚", sublabel: "Mermaid", category: "works", domain: "artist" },
+  { id: "wire", label: "針金", sublabel: "Wire", category: "works", domain: "artist" },
+  
+  // 活動・場 (神経科学者)
+  { id: "fish_eye", label: "Fish Eye Project", sublabel: "魚眼プロジェクト", category: "activities", domain: "scientist" },
+  { id: "morning_monsters", label: "Morning Monsters", sublabel: "朝の怪物たち", category: "activities", domain: "bridge" },
+  { id: "w_eiji", label: "W Eiji", sublabel: "二人のエイジ", category: "activities", domain: "bridge" },
+  { id: "obu_exhibition", label: "大府市展覧会", sublabel: "Obu Exhibition", category: "activities", domain: "bridge" },
+  { id: "art_obulist", label: "アートオブリスト", sublabel: "10周年", category: "activities", domain: "bridge" },
+  { id: "wactory", label: "The Wactory", sublabel: "Watanabeの工場", category: "activities", domain: "scientist" },
+  
+  // 活動・場 (芸術家)
+  { id: "aichi_triennale", label: "あいちトリエンナーレ", sublabel: "Aichi Triennale", category: "activities", domain: "artist" },
+  { id: "echigo_tsumari", label: "越後妻有", sublabel: "Echigo-Tsumari", category: "activities", domain: "artist" },
+  { id: "tokyo_biennale", label: "東京ビエンナーレ", sublabel: "Tokyo Biennale", category: "activities", domain: "artist" }
+];
+
+const nodeMap = new Map(allNodes.map(n => [n.id, n]));
+
+// ========== ノード説明データ ==========
+const nodeDescriptions = {
+  // === 治思考（神経科学者）===
+  predictive_coding: "脳は世界を予測するシステム。上位層からの予測（Top-down）と下位層からの感覚入力（Bottom-up）の差分——予測誤差（Δ）——を最小化することで、私たちは世界を認識する。",
+  delta_model: "時間モデル（Temporal Model）と空間モデル（Spatial Model）を統合する枠組み。Δ（デルタ）という差分が知覚を生み出し、意識を形成し、芸術を可能にする。",
+  prednet: "予測符号化理論を深層ニューラルネットワークとして実装。教師なし学習で訓練され、北岡明佳の「蛇回転錯視」を人間と同様に「知覚」することを実証した（Watanabe et al., 2018）。",
+  transform: "渡辺英治の認識論的核心アルゴリズム。「錯視を錯視じゃなくす。動くを動くじゃなくす。赤を赤じゃなくす。光るを光らなくする」——否定を媒介とした変換操作。",
+  consciousness: "渡辺の思考回路における絶対的中心。「Consciousnessは基本的にsilentであり言葉を発することがない」——沈黙する意識への収束点。",
+  rotating_snake: "北岡明佳が発見した錯視。静止画から運動を知覚する。PredNetによる再現実験で、予測符号化理論の妥当性が実証された。",
+  silent_consciousness: "「意識は基本的にsilentであり言葉を発することがない」——言葉で捉えられないものこそが最も本質的。",
+  negation_mediation: "否定を媒介とした変換操作。「Xをxじゃなくす」と「小さな転覆」に共通する認識論的構造。",
+  perturbation: "システムに導入される微小な乱れ。予測誤差、転覆、錯視を統一的に捉える概念。Δ（差分）の別名。",
+  temporal_model: "Flash-lag効果を時間的処理遅延で説明するモデル。知覚の潜在時間（latency）の差異が位置ずれを生む。",
+  spatial_model: "運動物体の位置が空間的にシフトするモデル。運動信号が位置符号化に直接影響する。",
+  flash_lag: "運動物体と同位置にフラッシュを提示すると、フラッシュが遅れて見える錯視現象。Vision Research 2010論文の主題。",
+  kebab_illusion: "渡辺が発見した新しい錯視現象。「!!!great!!!」とノートに記された発見の瞬間。Flash-lag効果の新バリエーション。",
+  td_learning: "時間差学習（Temporal Difference Learning）。報酬予測誤差を用いた強化学習アルゴリズム。TD error = R(t) + γV(t+1) - V(t)。",
+  dopamine: "報酬予測誤差を符号化する神経伝達物質。TD学習の神経基盤として大脳基底核回路で機能。",
+  reservoir: "リザバー・コンピューティング。ランダムな再帰結合を持つニューラルネットワーク。様々な認知機能への適用が構想された。",
+  icore: "iCore = RF（網様体 / Reticular Formation）。意識の基盤としての網様体仮説。2007年「イミキ」ノートで提唱。",
+  binding: "バインディング問題。分散して処理された視覚特徴（色、形、動き）をどのように統合するかという問い。",
+  attention: "注意。視覚処理を局所的に加速し、運動検出器への信号到達順序を変える。Line motionの説明に関与。",
+  object_file: "オブジェクトファイル。視覚システムが物体を追跡・同定するための一時的な表象構造。",
+  line_motion: "先行刺激（pre-cue）から線が伸びるように見える錯視。注意の勾配による視覚処理加速で説明される。",
+  motor_loop: "運動ループ / Motor-Sensory Loop。予測と感覚フィードバックの循環構造。Motor PredNetの基盤。",
+  basal_ganglia: "大脳基底核。TD学習とドーパミン系の神経回路基盤。報酬予測誤差の計算に関与。",
+  "100ms": "100ミリ秒の知覚窓。視覚処理における時間的統合の基本単位。Time frame理論の核心。",
+  unsupervised: "教師なし学習。ラベルなしデータから内部モデルを形成。PredNetの訓練方法。",
+  pop_art: "「Illusion → Pop Art へ!!」「Art は Illusion そのもの」「皆が楽しめる研究!!」——科学と芸術の融合ビジョン。",
+  bpop_art: "Bio Pop Art。生物学的知見を芸術化するPop Art構想の一分類。",
+  ipop_art: "Illusion Pop Art。錯視現象を芸術化するPop Art構想の核心。蛇回転錯視との強い接続。",
+  npop_art: "Neuro Pop Art。神経科学を芸術化するPop Art構想の一分類。",
+  spop_art: "Scientific Pop Art。科学全般を芸術化するPop Art構想の一分類。",
+  pqr_method: "Prediction + Q-Learning + Reservoir = PQR method。三つの学習パラダイム統合構想。",
+  eiken: "EIKEN構想。「LLM + New Perception Model = EIKEN」。PredNetの発展形としての統合モデル。",
+  fish_eye: "Fish Eye Project。魚眼レンズを通した非人間的知覚の体験装置。Singularityとの接続。",
+  singularity: "To Singularity。Fish Eye Projectと接続する概念。特異点への到達。",
+  wactory: "The Wactory / The New Factory。iPopArtのための創造拠点構想。ALL CREATORS宣言。",
+  white_noise: "ホワイトノイズ / 夢。リザバーと接続する概念。意識の背景としてのランダムな神経活動。",
+  golden_ratio: "黄金比。2007年ノートで「こころ」と接続。数学と美の交差点。",
+  kokoro: "こころのかたち。2007年ノートの哲学的洞察。意識との接続。",
+  formalization: "「数式化は不正確をまねく」——数学的形式化への批判的洞察。PredNet使用との緊張関係。",
+  pi_infinity: "「π は 無限を 有限にする方法」——無限を有限に変換する詩的洞察。「Xをxじゃなくす」との同型性。",
+  pre_linguistic: "前言語的領域。沈黙する意識が指し示す、言葉以前の認識世界。",
+  
+  // === 司思考（芸術家）===
+  small_subversion: "「身近な事物に起こされた小さな転覆により、哲学、ファンタジー、故事などにも近づくような深遠かつユーモアに富んだ視点を生み出す」",
+  naming: "「命名が事物を存在化させるのか」——渡辺英司のすべての作品を貫く核心的問い。",
+  butterflys_eye_view: "「鳥瞰図」から「蝶瞰図」への変換が象徴する視点の転覆。越後妻有トリエンナーレ2009で発表。",
+  garden_of_names: "植物・きのこを図鑑から切り抜き、針金で再構成したインスタレーション。1992年から30年以上継続。",
+  butterfly_dream: "「昔、荘周は夢の中で蝶になった」——荘子の胡蝶の夢。夢と現実、自己と他者の境界への問い。",
+  existence: "存在。命名によって事物が存在化するという問い。「名前を剥奪されたものは何として存在するのか」",
+  recognition: "認識。「散歩道で出合った植物の名前を知り得たとき、初めて目の前のものが個性として認識される」",
+  classification: "分類。リンネの二名法に始まる近代分類学。図鑑という「知の体系」の基盤。",
+  field_guide: "図鑑。蝶図鑑、植物図鑑、キノコ図鑑——近代分類学が築いた知の体系そのもの。渡辺の素材の中心。",
+  cutting: "切り抜き。図鑑から蝶を切り抜く行為は名前からの切断であり、存在の解放である。核心的技法。",
+  liberation: "解放。図鑑という文脈から切り離された存在が獲得する新たな存在様態。",
+  liberated_existence: "解放された存在。名前から切断され、新たな空間に再配置された蝶や植物の存在様態。",
+  boundary: "境界。夢と現実、自己と他者、人間と非人間——渡辺英司が問い続けるテーマ。",
+  fragment: "断片。切り抜かれた個々の蝶や植物。「小さな」転覆の単位。",
+  accumulation: "蓄積。何百もの蝶、何千もの植物——断片の蓄積が「庭」を形成する。30年の時間性。",
+  merman: "《Merman/おとこの人魚》。テキストのみで視覚的イメージを喚起する絵画シリーズ。2020年。",
+  mermaid: "人魚。人間と魚の混合体。境界の曖昧さを象徴するモチーフ。",
+  star_names: "《星の名前》。1997年作品。命名をテーマとした作品。",
+  butterfly: "蝶。《蝶瞰図》の中心的モチーフ。荘子「胡蝶の夢」との対話。",
+  plants: "植物。《名称の庭》の素材。図鑑から切り抜かれ、針金で吊るされる。",
+  wire: "針金。植物やきのこを吊るすための素材。切り抜きとともに核心的技法を構成。",
+  cheap_materials: "安価な素材。中古の図鑑、ハサミ、針金——「深遠な問い」とのコントラスト。",
+  deconstruction: "脱構築。デリダの概念。二項対立の内部崩壊。渡辺の「小さな転覆」との方法論的類似。",
+  mimesis: "模倣。プラトンのイデア論における概念。図鑑は自然の模倣、作品は模倣の模倣。",
+  segmentation_device: "分節装置。言語が世界を分節し認識可能にするというソシュール言語学の概念。",
+  
+  // === 架橋・邂逅 ===
+  mitate: "見立て。日本の伝統的美学概念。あるものを別のものに見なす認知操作。錯視と小さな転覆の共通構造。",
+  w_eiji: "W Eiji展。二人の渡辺英治/英司による2025年展覧会。「知覚と認識をめぐる散策」がテーマ。",
+  morning_monsters: "Morning Monsters展。「朝の怪物たち」。W Eiji展と同時開催。大府市展覧会。",
+  obu_exhibition: "大府市展覧会。2025年11月開催。アートオブリスト10周年記念。二人の邂逅の場。",
+  art_obulist: "アートオブリスト。2021年に渡辺英司が立ち上げた愛知県大府市のアートプロジェクト。邂逅を主催。",
+  echigo_tsumari: "越後妻有トリエンナーレ。2009年《蝶瞰図》を福武ハウスで発表。",
+  aichi_triennale: "あいちトリエンナーレ2010。《名称の庭/御園》を御園小学校体育館で発表。",
+  tokyo_biennale: "東京ビエンナーレ2025。《名称の庭》をエトワール海渡リビング館7階で発表。鈴木昭男とのコラボ。"
+};
+
+// ========== エッジデータ ==========
+const allEdges = [
+  // === 科学者・明示的 ===
+  { source: "predictive_coding", target: "delta_model", strength: 0.9, type: "explicit" },
+  { source: "predictive_coding", target: "prednet", strength: 0.9, type: "explicit" },
+  { source: "delta_model", target: "temporal_model", strength: 0.85, type: "explicit" },
+  { source: "delta_model", target: "spatial_model", strength: 0.85, type: "explicit" },
+  { source: "prednet", target: "rotating_snake", strength: 0.95, type: "explicit" },
+  { source: "prednet", target: "unsupervised", strength: 0.8, type: "explicit" },
+  { source: "td_learning", target: "dopamine", strength: 0.9, type: "explicit" },
+  { source: "dopamine", target: "td_learning", strength: 0.9, type: "explicit" },
+  { source: "reservoir", target: "consciousness", strength: 0.7, type: "explicit" },
+  { source: "consciousness", target: "icore", strength: 0.9, type: "explicit" },
+  { source: "consciousness", target: "silent_consciousness", strength: 0.95, type: "explicit" },
+  { source: "pop_art", target: "bpop_art", strength: 0.9, type: "explicit" },
+  { source: "pop_art", target: "ipop_art", strength: 0.9, type: "explicit" },
+  { source: "pop_art", target: "npop_art", strength: 0.9, type: "explicit" },
+  { source: "pop_art", target: "spop_art", strength: 0.9, type: "explicit" },
+  { source: "ipop_art", target: "rotating_snake", strength: 0.85, type: "explicit" },
+  { source: "flash_lag", target: "temporal_model", strength: 0.85, type: "explicit" },
+  { source: "flash_lag", target: "spatial_model", strength: 0.8, type: "explicit" },
+  { source: "kebab_illusion", target: "flash_lag", strength: 0.75, type: "explicit" },
+  { source: "attention", target: "binding", strength: 0.8, type: "explicit" },
+  { source: "attention", target: "object_file", strength: 0.8, type: "explicit" },
+  { source: "binding", target: "object_file", strength: 0.6, type: "explicit" },
+  { source: "binding", target: "reservoir", strength: 0.5, type: "explicit" },
+  { source: "line_motion", target: "attention", strength: 0.7, type: "explicit" },
+  { source: "motor_loop", target: "prednet", strength: 0.7, type: "explicit" },
+  { source: "basal_ganglia", target: "motor_loop", strength: 0.6, type: "explicit" },
+  
+  // === 科学者・潜在的 ===
+  { source: "consciousness", target: "morning_monsters", strength: 0.5, type: "latent" },
+  { source: "rotating_snake", target: "morning_monsters", strength: 0.6, type: "latent" },
+  
+  // === 芸術家・明示的 ===
+  { source: "naming", target: "existence", strength: 0.95, type: "explicit" },
+  { source: "naming", target: "recognition", strength: 0.95, type: "explicit" },
+  { source: "naming", target: "classification", strength: 0.90, type: "explicit" },
+  { source: "classification", target: "field_guide", strength: 0.95, type: "explicit" },
+  { source: "field_guide", target: "cutting", strength: 0.95, type: "explicit" },
+  { source: "cutting", target: "liberation", strength: 0.90, type: "explicit" },
+  { source: "small_subversion", target: "cutting", strength: 0.90, type: "explicit" },
+  { source: "liberation", target: "liberated_existence", strength: 0.90, type: "explicit" },
+  { source: "butterfly_dream", target: "boundary", strength: 0.90, type: "explicit" },
+  { source: "butterflys_eye_view", target: "butterfly_dream", strength: 0.95, type: "explicit" },
+  { source: "butterflys_eye_view", target: "small_subversion", strength: 0.90, type: "explicit" },
+  { source: "butterflys_eye_view", target: "naming", strength: 0.90, type: "explicit" },
+  { source: "butterflys_eye_view", target: "field_guide", strength: 0.95, type: "explicit" },
+  { source: "butterflys_eye_view", target: "cutting", strength: 0.95, type: "explicit" },
+  { source: "garden_of_names", target: "naming", strength: 0.95, type: "explicit" },
+  { source: "garden_of_names", target: "field_guide", strength: 0.95, type: "explicit" },
+  { source: "garden_of_names", target: "accumulation", strength: 0.85, type: "explicit" },
+  { source: "merman", target: "boundary", strength: 0.85, type: "explicit" },
+  { source: "star_names", target: "naming", strength: 0.85, type: "explicit" },
+  { source: "field_guide", target: "cutting", strength: 0.95, type: "explicit" },
+  { source: "cutting", target: "fragment", strength: 0.90, type: "explicit" },
+  // モチーフ・素材の接続
+  { source: "butterflys_eye_view", target: "butterfly", strength: 0.95, type: "explicit" },
+  { source: "butterfly", target: "butterfly_dream", strength: 0.90, type: "explicit" },
+  { source: "garden_of_names", target: "plants", strength: 0.95, type: "explicit" },
+  { source: "garden_of_names", target: "wire", strength: 0.90, type: "explicit" },
+  { source: "merman", target: "mermaid", strength: 0.95, type: "explicit" },
+  { source: "mermaid", target: "boundary", strength: 0.80, type: "explicit" },
+  { source: "wire", target: "cutting", strength: 0.85, type: "explicit" },
+  { source: "butterflys_eye_view", target: "echigo_tsumari", strength: 0.95, type: "explicit" },
+  { source: "garden_of_names", target: "aichi_triennale", strength: 0.95, type: "explicit" },
+  { source: "garden_of_names", target: "tokyo_biennale", strength: 0.95, type: "explicit" },
+  { source: "w_eiji", target: "obu_exhibition", strength: 0.95, type: "explicit" },
+  { source: "w_eiji", target: "small_subversion", strength: 0.90, type: "explicit" },
+  { source: "w_eiji", target: "naming", strength: 0.85, type: "explicit" },
+  { source: "w_eiji", target: "recognition", strength: 0.85, type: "explicit" },
+  { source: "mitate", target: "recognition", strength: 0.90, type: "explicit" },
+  { source: "morning_monsters", target: "obu_exhibition", strength: 0.95, type: "explicit" },
+  
+  // === 「Xをxじゃなくす」からの接続（治さんの核心的アルゴリズム） ===
+  // 科学者領域内の接続
+  { source: "transform", target: "rotating_snake", strength: 0.90, type: "explicit" },  // 「錯視を錯視じゃなくす」の直接的対象
+  { source: "transform", target: "predictive_coding", strength: 0.85, type: "explicit" },  // 予測誤差による変換の理論的基盤
+  { source: "transform", target: "delta_model", strength: 0.85, type: "explicit" },  // Δこそが「Xをxじゃなくす」の機構
+  { source: "transform", target: "ipop_art", strength: 0.80, type: "explicit" },  // 「Art は Illusion そのもの」への変換
+  { source: "transform", target: "pop_art", strength: 0.75, type: "explicit" },  // Pop Art構想全体との接続
+  // 架橋概念との接続
+  { source: "transform", target: "negation_mediation", strength: 0.90, type: "explicit" },  // 否定媒介変換という同一構造
+  { source: "transform", target: "mitate", strength: 0.85, type: "latent" },  // 見立てとの認識論的同型性
+  // 治↔帝の直接接続（最も重要な架橋）
+  { source: "transform", target: "small_subversion", strength: 0.95, type: "explicit" },  // 唯一の明示的直接接続
+  
+  // === 治思考内・潜在的 ===
+  // computation内・間
+  { source: "predictive_coding", target: "pqr_method", strength: 0.80, type: "latent" },  // PQRのP
+  { source: "td_learning", target: "pqr_method", strength: 0.80, type: "latent" },  // PQRのQ
+  { source: "reservoir", target: "pqr_method", strength: 0.80, type: "latent" },  // PQRのR
+  { source: "prednet", target: "eiken", strength: 0.80, type: "latent" },  // EIKENはPredNetの発展
+  { source: "prednet", target: "consciousness", strength: 0.60, type: "latent" },  // 予測符号化と意識
+  { source: "prednet", target: "motor_loop", strength: 0.80, type: "latent" },  // Motor PredNet
+  { source: "reservoir", target: "consciousness", strength: 0.70, type: "latent" },  // リザバーと意識
+  { source: "reservoir", target: "white_noise", strength: 0.60, type: "latent" },  // リザバーと夢
+  // perception内
+  { source: "consciousness", target: "binding", strength: 0.70, type: "latent" },  // 意識とバインディング問題
+  { source: "consciousness", target: "attention", strength: 0.60, type: "latent" },  // 意識と注意
+  { source: "icore", target: "silent_consciousness", strength: 0.85, type: "latent" },  // iCoreと沈黙する意識
+  { source: "motor_loop", target: "consciousness", strength: 0.70, type: "latent" },  // 運動ループと意識
+  { source: "motor_loop", target: "icore", strength: 0.60, type: "latent" },  // 運動ループとiCore
+  { source: "rotating_snake", target: "consciousness", strength: 0.60, type: "latent" },  // 蛇回転と意識
+  { source: "100ms", target: "reservoir", strength: 0.50, type: "latent" },  // 100ms窓とリザバー
+  // philosophy内
+  { source: "golden_ratio", target: "kokoro", strength: 0.60, type: "latent" },  // 黄金比とこころ（2007年ノート）
+  { source: "kokoro", target: "consciousness", strength: 0.50, type: "latent" },  // こころと意識
+  { source: "formalization", target: "consciousness", strength: 0.40, type: "latent" },  // 数式化の限界と意識
+  // aesthetics内
+  { source: "transform", target: "perturbation", strength: 0.80, type: "latent" },  // 変換と摂動
+  { source: "negation_mediation", target: "perturbation", strength: 0.70, type: "latent" },  // 否定媒介と摂動
+  // activities内
+  { source: "fish_eye", target: "singularity", strength: 0.75, type: "latent" },  // Fish EyeとSingularity（To Singularity）
+  { source: "wactory", target: "ipop_art", strength: 0.80, type: "latent" },  // WactoryとiPopArt
+  // カテゴリ横断
+  { source: "consciousness", target: "eiken", strength: 0.60, type: "latent" },  // 意識とEIKEN（保留状態）
+  { source: "consciousness", target: "white_noise", strength: 0.50, type: "latent" },  // 意識と夢
+  { source: "silent_consciousness", target: "pre_linguistic", strength: 0.75, type: "latent" },  // 沈黙する意識と前言語的
+  { source: "formalization", target: "prednet", strength: 0.90, type: "latent" },  // 緊張：数式化批判↔DNN使用
+  // πと無限の接続
+  { source: "pi_infinity", target: "transform", strength: 0.85, type: "latent" },  // 「無限を有限にする」=「XをXじゃなくす」の同型
+  { source: "pi_infinity", target: "formalization", strength: 0.70, type: "latent" },  // 数式化の詩的側面
+  { source: "pi_infinity", target: "silent_consciousness", strength: 0.65, type: "latent" },  // 沈黙と言葉の弁証法
+  { source: "pi_infinity", target: "golden_ratio", strength: 0.60, type: "latent" },  // 2007年ノート、数学と美
+  { source: "pi_infinity", target: "consciousness", strength: 0.55, type: "latent" },  // 無限（沈黙）→有限（記号）
+  
+  // === 芸術家・潜在的 ===
+  
+  // === 架橋・潜在的 ===
+  { source: "mitate", target: "rotating_snake", strength: 0.75, type: "latent" },
+  { source: "mitate", target: "small_subversion", strength: 0.85, type: "latent" },
+  { source: "mitate", target: "butterfly_dream", strength: 0.75, type: "latent" },
+  { source: "mitate", target: "garden_of_names", strength: 0.75, type: "latent" },
+  { source: "delta_model", target: "mitate", strength: 0.70, type: "latent" },
+  { source: "attention", target: "mitate", strength: 0.65, type: "latent" },
+  { source: "wactory", target: "w_eiji", strength: 0.65, type: "latent" },
+  { source: "mitate", target: "butterfly_dream", strength: 0.75, type: "latent" },
+  { source: "mitate", target: "star_names", strength: 0.65, type: "latent" },
+  { source: "mitate", target: "boundary", strength: 0.70, type: "latent" },
+  
+  // アートオブリスト（邂逅の場を主催）
+  { source: "art_obulist", target: "obu_exhibition", strength: 0.95, type: "explicit" },
+  { source: "art_obulist", target: "w_eiji", strength: 0.90, type: "explicit" },
+  { source: "art_obulist", target: "morning_monsters", strength: 0.85, type: "explicit" },
+  
+  // ========== 司思考の潜在的エッジ ==========
+  // philosophy内部
+  { source: "butterfly_dream", target: "boundary", strength: 0.85, type: "latent" },  // 夢と現実の境界
+  { source: "deconstruction", target: "boundary", strength: 0.80, type: "latent" },  // 境界の脱構築
+  { source: "existence", target: "liberation", strength: 0.75, type: "latent" },  // 存在の解放
+  { source: "liberation", target: "liberated_existence", strength: 0.90, type: "latent" },  // 概念の展開
+  
+  // language内部（言語学）
+  { source: "naming", target: "segmentation_device", strength: 0.80, type: "latent" },  // 命名＝分節
+  { source: "recognition", target: "classification", strength: 0.85, type: "latent" },  // 認識と分類
+  
+  // aesthetics内部（美学）
+  { source: "small_subversion", target: "fragment", strength: 0.75, type: "latent" },  // 断片による転覆
+  { source: "fragment", target: "accumulation", strength: 0.85, type: "latent" },  // 断片の蓄積
+  { source: "small_subversion", target: "accumulation", strength: 0.70, type: "latent" },  // 転覆の蓄積
+  
+  // works関連
+  { source: "star_names", target: "naming", strength: 0.85, type: "latent" },  // 命名をテーマとした作品
+  { source: "cheap_materials", target: "field_guide", strength: 0.85, type: "latent" },  // 中古図鑑の使用
+  
+  // クロスカテゴリ（哲学→美学）
+  { source: "mimesis", target: "small_subversion", strength: 0.70, type: "latent" },  // 模倣の転覆
+  { source: "deconstruction", target: "small_subversion", strength: 0.75, type: "latent" },  // 方法論的類似
+  
+  // ========== 治↔司 直接接続（活動場を介さない邂逅）==========
+  { source: "negation_mediation", target: "liberation", strength: 0.85, type: "latent" },  // 「否定的媒介」と「解放」— XをXじゃなくす構造
+  { source: "silent_consciousness", target: "boundary", strength: 0.80, type: "latent" },  // 沈黙する意識と境界の問い
+  { source: "consciousness", target: "recognition", strength: 0.75, type: "latent" },  // 意識と認識の問い
+  { source: "predictive_coding", target: "naming", strength: 0.70, type: "latent" },  // 予測モデルと命名の認識論的類似
+  { source: "rotating_snake", target: "butterfly", strength: 0.65, type: "latent" }  // 運動知覚と蝶のモチーフ
+];
+
+// ========== 思考タイプの自動判定 ==========
+const categoryToThought = {
+  computation: "science",
+  perception: "science",
+  philosophy: "philosophy",
+  language: "linguistics",
+  aesthetics: "art",
+  works: "art",
+  activities: "art"
+};
+
+allEdges.forEach(e => {
+  const sourceNode = nodeMap.get(e.source);
+  const targetNode = nodeMap.get(e.target);
+  if (!sourceNode || !targetNode) return;
+  
+  const sourceThought = categoryToThought[sourceNode.category] || "philosophy";
+  const targetThought = categoryToThought[targetNode.category] || "philosophy";
+  
+  if (sourceThought === "linguistics" || targetThought === "linguistics") {
+    e.thought = "linguistics";
+  } else if (sourceThought === "philosophy" || targetThought === "philosophy") {
+    e.thought = "philosophy";
+  } else if (sourceThought === "art" || targetThought === "art") {
+    e.thought = "art";
+  } else {
+    e.thought = "science";
+  }
+});
+
+// ========== フィルター状態 ==========
+let filters = {
+  scientist: true,
+  artist: true,
+  bridge: true,  // 邂逅（W Eiji展）
+  explicit: true,
+  latent: true,
+  // 思考フィルター
+  thoughtScience: true,
+  thoughtArt: true,
+  thoughtPhilosophy: true,
+  // カテゴリーフィルター
+  computation: true,
+  perception: true,
+  philosophy: true,
+  language: true,
+  aesthetics: true,
+  works: true,
+  activities: true
+};
+
+// カテゴリーから思考タイプへのマッピング
+const categoryToThoughtType = {
+  computation: "science",
+  perception: "science",
+  philosophy: "philosophy",
+  language: "philosophy",
+  aesthetics: "art",
+  works: "art",
+  activities: "art"
+};
+
+let tension = 0.85;
+let strengthMin = 0;
+let strengthMax = 1;
+let top5NodeIds = [];
+
+// ========== イベントリスナー ==========
+document.getElementById("tension").oninput = function() {
+  tension = +this.value;
+  document.getElementById("tensionVal").textContent = tension.toFixed(2);
+  line = d3.lineRadial().curve(d3.curveBundle.beta(tension)).radius(d => d.y).angle(d => d.x);
+  render();
+};
+
+// マトリックス更新関数
+function updateStatsMatrix() {
+  const scientistNodes = allNodes.filter(n => n.domain === "scientist" || n.domain === "both");
+  const artistNodes = allNodes.filter(n => n.domain === "artist" || n.domain === "both");
+  const bridgeNodes = allNodes.filter(n => n.domain === "bridge");
+  
+  // エッジのカウント
+  let scientistEdges = 0, artistEdges = 0, bridgeEdges = 0;
+  const scientistIds = new Set(scientistNodes.map(n => n.id));
+  const artistIds = new Set(artistNodes.map(n => n.id));
+  const bridgeIds = new Set(bridgeNodes.map(n => n.id));
+  
+  allEdges.filter(e => filters[e.type]).forEach(e => {
+    const srcScientist = scientistIds.has(e.source);
+    const tgtScientist = scientistIds.has(e.target);
+    const srcArtist = artistIds.has(e.source);
+    const tgtArtist = artistIds.has(e.target);
+    const srcBridge = bridgeIds.has(e.source);
+    const tgtBridge = bridgeIds.has(e.target);
+    
+    // 治思考内エッジ
+    if (srcScientist && tgtScientist && !srcBridge && !tgtBridge && !srcArtist && !tgtArtist) {
+      scientistEdges++;
+    }
+    // 司思考内エッジ
+    else if (srcArtist && tgtArtist && !srcBridge && !tgtBridge && !srcScientist && !tgtScientist) {
+      artistEdges++;
+    }
+    // 邂逅エッジ（bridge含む、または治↔司の直接接続）
+    else if (srcBridge || tgtBridge || (srcScientist && tgtArtist) || (srcArtist && tgtScientist)) {
+      bridgeEdges++;
+    }
+  });
+  
+  document.getElementById("nodeScientist").textContent = scientistNodes.length;
+  document.getElementById("nodeArtist").textContent = artistNodes.length;
+  document.getElementById("nodeBridge").textContent = bridgeNodes.length;
+  document.getElementById("nodeTotal").textContent = allNodes.length;
+  
+  document.getElementById("edgeScientist").textContent = scientistEdges;
+  document.getElementById("edgeArtist").textContent = artistEdges;
+  document.getElementById("edgeBridge").textContent = bridgeEdges;
+  document.getElementById("edgeTotal").textContent = allEdges.filter(e => filters[e.type]).length;
+}
+
+// カテゴリーとドメインの対応関係
+const domainToCategories = {
+  scientist: ["computation", "perception"],  // scientist専用
+  artist: ["philosophy", "works"],           // artist専用
+  shared: ["language", "aesthetics", "activities"]  // 両方にまたがる
+};
+
+// カテゴリーフィルターのUI更新
+function updateCategoryButtons() {
+  Object.entries(categoryButtons).forEach(([btnId, category]) => {
+    const btn = document.getElementById(btnId);
+    if (filters[category]) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+}
+
+// 説明ウィンドウを表示する関数
+function showFilterHelp(filterType) {
+  const desc = filterDescriptions[filterType];
+  if (desc) {
+    document.getElementById("filterHelpTitle").innerHTML = desc.title + '<button class="close-btn" onclick="document.getElementById(\'filterHelp\').classList.remove(\'visible\')">×</button>';
+    document.getElementById("filterHelpContent").innerHTML = desc.content;
+    document.getElementById("filterHelp").classList.add("visible");
+  }
+}
+
+// 領域フィルター（カテゴリーフィルターとは独立して動作）
+document.getElementById("btnScientist").onclick = function() {
+  this.classList.toggle("active");
+  filters.scientist = this.classList.contains("active");
+  showFilterHelp("scientist");
+  render();
+  renderRanking();
+};
+
+document.getElementById("btnArtist").onclick = function() {
+  this.classList.toggle("active");
+  filters.artist = this.classList.contains("active");
+  showFilterHelp("artist");
+  render();
+  renderRanking();
+};
+
+document.getElementById("btnBridge").onclick = function() {
+  this.classList.toggle("active");
+  filters.bridge = this.classList.contains("active");
+  showFilterHelp("bridge");
+  render();
+  renderRanking();
+};
+
+// エッジ分類フィルター
+document.getElementById("btnExplicit").onclick = function() {
+  this.classList.toggle("active");
+  filters.explicit = this.classList.contains("active");
+  render();
+  renderRanking();
+};
+
+document.getElementById("btnLatent").onclick = function() {
+  this.classList.toggle("active");
+  filters.latent = this.classList.contains("active");
+  render();
+  renderRanking();
+};
+
+// 思考フィルター
+document.getElementById("btnThoughtScience").onclick = function() {
+  this.classList.toggle("active");
+  filters.thoughtScience = this.classList.contains("active");
+  render();
+  renderRanking();
+};
+
+document.getElementById("btnThoughtArt").onclick = function() {
+  this.classList.toggle("active");
+  filters.thoughtArt = this.classList.contains("active");
+  render();
+  renderRanking();
+};
+
+document.getElementById("btnThoughtPhilosophy").onclick = function() {
+  this.classList.toggle("active");
+  filters.thoughtPhilosophy = this.classList.contains("active");
+  render();
+  renderRanking();
+};
+
+// カテゴリーフィルター
+const categoryButtons = {
+  btnComputation: "computation",
+  btnPerception: "perception",
+  btnPhilosophy: "philosophy",
+  btnLanguage: "language",
+  btnAesthetics: "aesthetics",
+  btnWorks: "works",
+  btnActivities: "activities"
+};
+
+Object.entries(categoryButtons).forEach(([btnId, category]) => {
+  document.getElementById(btnId).onclick = function() {
+    this.classList.toggle("active");
+    filters[category] = this.classList.contains("active");
+    render();
+    renderRanking();
+  };
+});
+
+// ========== 階層構造構築 ==========
+function buildHierarchy() {
+  const scientistNodeIds = new Set(allNodes.filter(n => n.domain === "scientist" || n.domain === "both").map(n => n.id));
+  const artistNodeIds = new Set(allNodes.filter(n => n.domain === "artist" || n.domain === "both").map(n => n.id));
+  const bridgeNodeIds = new Set(allNodes.filter(n => n.domain === "bridge").map(n => n.id));
+  
+  // domainフィルターで選択されたノード（bothは両方のフィルターに含める）
+  const domainFilteredNodeIds = new Set(allNodes.filter(n => {
+    if (n.domain === "both") return filters.scientist || filters.artist;
+    return filters[n.domain];
+  }).map(n => n.id));
+  
+  // bridgeフィルターがオンの場合
+  if (filters.bridge) {
+    // bridgeノードに接続するノードも追加
+    allEdges.filter(e => filters[e.type]).filter(e => e.strength >= strengthMin && e.strength <= strengthMax).forEach(e => {
+      if (bridgeNodeIds.has(e.source)) domainFilteredNodeIds.add(e.target);
+      if (bridgeNodeIds.has(e.target)) domainFilteredNodeIds.add(e.source);
+    });
+    
+    // 邂逅フィルターのみがオンの場合、scientist↔artistの直接接続に関連するノードも追加
+    if (!filters.scientist && !filters.artist) {
+      allEdges.filter(e => filters[e.type]).filter(e => e.strength >= strengthMin && e.strength <= strengthMax).forEach(e => {
+        const sourceIsScientist = scientistNodeIds.has(e.source);
+        const targetIsScientist = scientistNodeIds.has(e.target);
+        const sourceIsArtist = artistNodeIds.has(e.source);
+        const targetIsArtist = artistNodeIds.has(e.target);
+        
+        // scientist/both ↔ artist/both の直接接続
+        if ((sourceIsScientist && targetIsArtist) || (sourceIsArtist && targetIsScientist)) {
+          domainFilteredNodeIds.add(e.source);
+          domainFilteredNodeIds.add(e.target);
+        }
+      });
+    }
+  }
+  
+  // 思考フィルターでフィルタリング
+  const thoughtFilteredNodeIds = new Set(allNodes.filter(n => {
+    const thoughtType = categoryToThoughtType[n.category];
+    if (thoughtType === "science") return filters.thoughtScience;
+    if (thoughtType === "art") return filters.thoughtArt;
+    if (thoughtType === "philosophy") return filters.thoughtPhilosophy;
+    return true; // 未分類は表示
+  }).map(n => n.id));
+  
+  const categoryFilteredNodeIds = new Set(allNodes.filter(n => filters[n.category]).map(n => n.id));
+  
+  // ドメイン、思考、カテゴリーすべてのフィルターを満たすノード
+  const sourceNodeIds = new Set([...domainFilteredNodeIds].filter(id => 
+    categoryFilteredNodeIds.has(id) && thoughtFilteredNodeIds.has(id)
+  ));
+  
+  const connectedNodeIds = new Set();
+  allEdges.filter(e => filters[e.type]).filter(e => e.strength >= strengthMin && e.strength <= strengthMax).forEach(e => {
+    // 接続先ノードは思考フィルターを適用せずに表示（ドメインフィルターのみ）
+    if (sourceNodeIds.has(e.source) && !sourceNodeIds.has(e.target) && domainFilteredNodeIds.has(e.target)) {
+      connectedNodeIds.add(e.target);
+    }
+    if (sourceNodeIds.has(e.target) && !sourceNodeIds.has(e.source) && domainFilteredNodeIds.has(e.source)) {
+      connectedNodeIds.add(e.source);
+    }
+  });
+  
+  const filteredNodeIds = new Set([...sourceNodeIds, ...connectedNodeIds]);
+  
+  // 邂逅フィルターのみがオンかどうかを判定
+  const bridgeOnlyMode = filters.bridge && !filters.scientist && !filters.artist;
+  
+  const imports = new Map();
+  allEdges.filter(e => filters[e.type]).filter(e => e.strength >= strengthMin && e.strength <= strengthMax).forEach(e => {
+    if (filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)) {
+      // 思考フィルター: 両方のノードが思考フィルターを通過している場合のみエッジを表示
+      if (!thoughtFilteredNodeIds.has(e.source) || !thoughtFilteredNodeIds.has(e.target)) {
+        return; // 異なる思考タイプ間のエッジはスキップ
+      }
+      
+      // 邂逅フィルターのみがオンの場合
+      if (bridgeOnlyMode) {
+        const sourceIsBridge = bridgeNodeIds.has(e.source);
+        const targetIsBridge = bridgeNodeIds.has(e.target);
+        const sourceIsScientist = scientistNodeIds.has(e.source);
+        const targetIsScientist = scientistNodeIds.has(e.target);
+        const sourceIsArtist = artistNodeIds.has(e.source);
+        const targetIsArtist = artistNodeIds.has(e.target);
+        
+        // 表示条件：
+        // 1. bridgeノード ↔ 非bridgeノード
+        // 2. scientist/both ↔ artist/both の直接接続
+        const isBridgeEdge = sourceIsBridge !== targetIsBridge;
+        const isCrossEdge = (sourceIsScientist && targetIsArtist) || (sourceIsArtist && targetIsScientist);
+        
+        if (!isBridgeEdge && !isCrossEdge) {
+          return; // 邂逅エッジでない場合はスキップ
+        }
+      }
+      if (!imports.has(e.source)) imports.set(e.source, []);
+      imports.get(e.source).push(e.target);
+    }
+  });
+  
+  const children = allNodes.map(node => ({
+    name: node.id,
+    data: node,
+    imports: imports.get(node.id) || [],
+    isFiltered: !filteredNodeIds.has(node.id),
+    isPartiallyActive: connectedNodeIds.has(node.id) && !sourceNodeIds.has(node.id)
+  }));
+  
+  return { hierarchy: { name: "root", children }, imports, filteredNodeIds, domainFilteredNodeIds, sourceNodeIds };
+}
+
+// ========== D3.js描画 ==========
+const width = window.innerWidth;
+const height = window.innerHeight;
+const radius = Math.min(width, height) / 2 - 150;
+
+const svgElement = d3.select("#chart").append("svg").attr("width", width).attr("height", height);
+
+const defs = svgElement.append("defs");
+const glowFilter = defs.append("filter").attr("id", "glow").attr("x", "-50%").attr("y", "-50%").attr("width", "200%").attr("height", "200%");
+glowFilter.append("feGaussianBlur").attr("stdDeviation", "3").attr("result", "coloredBlur");
+const feMerge = glowFilter.append("feMerge");
+feMerge.append("feMergeNode").attr("in", "coloredBlur");
+feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+// ズーム用の外側グループ
+const zoomGroup = svgElement.append("g");
+const svg = zoomGroup.append("g").attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+// ズーム＆パン機能
+const zoomBehavior = d3.zoom()
+  .scaleExtent([0.3, 5])
+  .on("zoom", (event) => {
+    zoomGroup.attr("transform", event.transform);
+  });
+
+svgElement.call(zoomBehavior);
+
+// ダブルクリックでリセット
+svgElement.on("dblclick.zoom", () => {
+  svgElement.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
+});
+const linkGroup = svg.append("g").attr("class", "links");
+const nodeGroup = svg.append("g").attr("class", "nodes");
+
+let line = d3.lineRadial().curve(d3.curveBundle.beta(tension)).radius(d => d.y).angle(d => d.x);
+
+function render() {
+  const { hierarchy, imports, filteredNodeIds, domainFilteredNodeIds, sourceNodeIds } = buildHierarchy();
+  
+  const root = d3.hierarchy(hierarchy);
+  const cluster = d3.cluster().size([2 * Math.PI, radius]);
+  cluster(root);
+  
+  const leaves = root.leaves();
+  const nodeByName = new Map(leaves.map(d => [d.data.name, d]));
+  
+  const scientistNodeIds = new Set(allNodes.filter(n => n.domain === "scientist").map(n => n.id));
+  const artistNodeIds = new Set(allNodes.filter(n => n.domain === "artist").map(n => n.id));
+  
+  const filteredStats = {};
+  filteredNodeIds.forEach(id => {
+    const node = allNodes.find(n => n.id === id);
+    if (node) {
+      filteredStats[id] = { id, label: node.label, category: node.category, domain: node.domain, outCount: 0, inCount: 0, totalStrength: 0 };
+    }
+  });
+  
+  allEdges.filter(e => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target))
+    .filter(e => sourceNodeIds.has(e.source) || sourceNodeIds.has(e.target))
+    .filter(e => filters[e.type]).filter(e => e.strength >= strengthMin && e.strength <= strengthMax)
+    .forEach(e => {
+      if (filteredStats[e.source]) { filteredStats[e.source].outCount++; filteredStats[e.source].totalStrength += e.strength; }
+      if (filteredStats[e.target]) { filteredStats[e.target].inCount++; filteredStats[e.target].totalStrength += e.strength; }
+    });
+  
+  const filteredStatsList = Object.values(filteredStats);
+  filteredStatsList.sort((a, b) => (b.outCount + b.inCount) - (a.outCount + a.inCount));
+  top5NodeIds = filteredStatsList.slice(0, 5).map(s => s.id);
+  
+  const links = [];
+  allEdges.forEach(e => {
+    const sourceNode = nodeByName.get(e.source);
+    const targetNode = nodeByName.get(e.target);
+    if (sourceNode && targetNode) {
+      const sourceData = nodeMap.get(e.source);
+      const targetData = nodeMap.get(e.target);
+      const sourceActive = filteredNodeIds.has(e.source);
+      const targetActive = filteredNodeIds.has(e.target);
+      const sourceInFilter = sourceNodeIds.has(e.source);
+      const targetInFilter = sourceNodeIds.has(e.target);
+      const typeActive = filters[e.type];
+      const strengthActive = e.strength >= strengthMin && e.strength <= strengthMax;
+      
+      const bothVisible = sourceActive && targetActive;
+      const atLeastOneInFilter = sourceInFilter || targetInFilter;
+      const isFiltered = !bothVisible || !atLeastOneInFilter || !typeActive || !strengthActive;
+      
+      links.push({ 
+        path: sourceNode.path(targetNode), 
+        source: e.source, target: e.target, type: e.type, thought: e.thought, strength: e.strength,
+        isFiltered, sourceCategory: sourceData?.category, sourceDomain: sourceData?.domain
+      });
+    }
+  });
+  
+  const specialConnection = (source, target) => (source === "transform" && target === "small_subversion");
+  
+  linkGroup.selectAll("path").remove();
+  linkGroup.selectAll("text").remove();
+  
+  const linkPaths = linkGroup.selectAll("path.link").data(links).join("path")
+    .attr("class", d => {
+      let cls = `link link--${d.type}`;
+      if (d.isFiltered) cls += " link--filtered";
+      if (specialConnection(d.source, d.target)) cls += " link--special";
+      return cls;
+    })
+    .attr("d", d => line(d.path))
+    .attr("stroke", d => specialConnection(d.source, d.target) ? "#ff00ff" : (categoryColors[d.sourceCategory] || "#8b949e"))
+    .attr("stroke-width", d => specialConnection(d.source, d.target) ? 3 : (0.5 + d.strength * 1.5))
+    .attr("stroke-opacity", d => {
+      if (specialConnection(d.source, d.target)) return 0.9;
+      if (d.isFiltered) return 0.03;
+      return d.type === "latent" ? 0.35 : 0.6;
+    })
+    .attr("stroke-dasharray", d => d.type === "latent" ? "4,2" : null);
+  
+  // 強度値ラベルの表示
+  if (showStrengthLabels) {
+    const visibleLinks = links.filter(l => !l.isFiltered);
+    const pathElements = linkPaths.nodes();
+    const pathDataMap = new Map();
+    
+    linkPaths.each(function(d, i) {
+      if (!d.isFiltered) {
+        const pathEl = this;
+        const totalLength = pathEl.getTotalLength();
+        const midPoint = pathEl.getPointAtLength(totalLength / 2);
+        pathDataMap.set(d.source + "-" + d.target, midPoint);
+      }
+    });
+    
+    linkGroup.selectAll("text.strength-label").data(visibleLinks).join("text")
+      .attr("class", "strength-label")
+      .attr("x", d => {
+        const point = pathDataMap.get(d.source + "-" + d.target);
+        return point ? point.x : 0;
+      })
+      .attr("y", d => {
+        const point = pathDataMap.get(d.source + "-" + d.target);
+        return point ? point.y : 0;
+      })
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .attr("font-size", "9px")
+      .attr("font-weight", "bold")
+      .attr("fill", d => specialConnection(d.source, d.target) ? "#ff00ff" : (categoryColors[d.sourceCategory] || "#8b949e"))
+      .attr("font-family", "'JetBrains Mono', monospace")
+      .attr("pointer-events", "none")
+      .text(d => d.strength.toFixed(2));
+  }
+  
+  const specialNodes = new Set(["transform", "small_subversion"]);
+  
+  nodeGroup.selectAll("g").remove();
+  const node = nodeGroup.selectAll("g").data(leaves).join("g")
+    .attr("class", d => d.data.isFiltered ? "node node--filtered" : "node")
+    .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y}, 0)`)
+    .on("mouseover", function(event, d) { if (!d.data.isFiltered) overed(d, links); })
+    .on("mouseout", function() { outed(); })
+    .on("click", function(event, d) { if (!d.data.isFiltered) showDetail(d); });
+  
+  node.append("circle")
+    .attr("r", d => {
+      if (specialNodes.has(d.data.name)) return 8;
+      return top5NodeIds.includes(d.data.name) ? 8 : 4;
+    })
+    .attr("fill", d => {
+      if (specialNodes.has(d.data.name) && !d.data.isFiltered) return "#ff00ff";
+      return categoryColors[d.data.data?.category] || "#7d8590";
+    })
+    .attr("opacity", d => d.data.isFiltered ? 0.12 : 1)
+    .attr("filter", d => {
+      if (specialNodes.has(d.data.name) && !d.data.isFiltered) return "url(#glow)";
+      return top5NodeIds.includes(d.data.name) && !d.data.isFiltered ? "url(#glow)" : null;
+    })
+    .attr("stroke", d => {
+      if (specialNodes.has(d.data.name) && !d.data.isFiltered) return "#fff";
+      return top5NodeIds.includes(d.data.name) && !d.data.isFiltered ? "#fff" : null;
+    })
+    .attr("stroke-width", d => {
+      if (specialNodes.has(d.data.name) && !d.data.isFiltered) return 2;
+      return top5NodeIds.includes(d.data.name) && !d.data.isFiltered ? 2 : 0;
+    });
+  
+  node.append("text")
+    .attr("dy", "0.31em")
+    .attr("x", d => d.x < Math.PI ? (top5NodeIds.includes(d.data.name) || specialNodes.has(d.data.name) ? 12 : 8) : (top5NodeIds.includes(d.data.name) || specialNodes.has(d.data.name) ? -12 : -8))
+    .attr("text-anchor", d => d.x < Math.PI ? "start" : "end")
+    .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
+    .text(d => d.data.data?.label || d.data.name)
+    .attr("fill", d => {
+      if (specialNodes.has(d.data.name) && !d.data.isFiltered) return "#ff00ff";
+      return categoryColors[d.data.data?.category] || "#c9d1d9";
+    })
+    .attr("font-size", d => {
+      if (specialNodes.has(d.data.name) && !d.data.isFiltered) return "11px";
+      return top5NodeIds.includes(d.data.name) && !d.data.isFiltered ? "11px" : "9px";
+    })
+    .attr("font-weight", d => {
+      if (specialNodes.has(d.data.name) && !d.data.isFiltered) return "bold";
+      return top5NodeIds.includes(d.data.name) && !d.data.isFiltered ? "bold" : "normal";
+    })
+    .attr("opacity", d => d.data.isFiltered ? 0.12 : 1);
+  
+  node.filter(d => top5NodeIds.includes(d.data.name) && !d.data.isFiltered)
+    .append("text").attr("class", "rank-label").attr("dy", "0.35em").attr("text-anchor", "middle")
+    .attr("fill", "#0d1117").attr("font-size", "8px").attr("font-weight", "bold")
+    .text(d => top5NodeIds.indexOf(d.data.name) + 1);
+  
+  const activeNodes = leaves.filter(l => !l.data.isFiltered);
+  const activeLinks = links.filter(l => !l.isFiltered);
+  
+  renderRanking();
+}
+
+function overed(d, links) {
+  const name = d.data.name;
+  
+  const outgoing = new Set();
+  const incoming = new Set();
+  
+  links.forEach(l => {
+    if (l.isFiltered) return;
+    if (l.source === name) outgoing.add(l.target);
+    if (l.target === name) incoming.add(l.source);
+  });
+  
+  d3.selectAll(".node").classed("node--source", n => outgoing.has(n.data.name));
+  d3.selectAll(".node").classed("node--target", n => incoming.has(n.data.name));
+  d3.selectAll(".node").classed("node--hover", n => n.data.name === name);
+  d3.selectAll(".node").classed("node--faded", n => !outgoing.has(n.data.name) && !incoming.has(n.data.name) && n.data.name !== name);
+  
+  d3.selectAll(".link").classed("link--source", l => l.source === name);
+  d3.selectAll(".link").classed("link--target", l => l.target === name);
+  d3.selectAll(".link").classed("link--faded", l => l.source !== name && l.target !== name);
+  
+  // 強度値ラベルの表示/非表示
+  d3.selectAll(".strength-label")
+    .classed("label--faded", l => l.source !== name && l.target !== name)
+    .classed("label--active", l => l.source === name || l.target === name);
+}
+
+function outed() {
+  d3.selectAll(".node").classed("node--source node--target node--hover node--faded", false);
+  d3.selectAll(".link").classed("link--source link--target link--faded", false);
+  d3.selectAll(".strength-label").classed("label--faded label--active", false);
+}
+
+function showDetail(d) {
+  const nodeData = d.data.data;
+  if (!nodeData) return;
+  
+  document.getElementById("detailName").textContent = nodeData.label;
+  document.getElementById("detailSublabel").textContent = nodeData.sublabel;
+  
+  const catTag = document.getElementById("detailCategory");
+  catTag.textContent = categoryLabels[nodeData.category] || nodeData.category;
+  catTag.style.backgroundColor = categoryColors[nodeData.category] + "30";
+  catTag.style.color = categoryColors[nodeData.category];
+  
+  document.getElementById("detailDescription").textContent = nodeDescriptions[nodeData.id] || "説明がありません。";
+  
+  const connections = [];
+  allEdges.filter(e => filters[e.type] && e.strength >= strengthMin && e.strength <= strengthMax).forEach(e => {
+    if (e.source === nodeData.id) {
+      const target = nodeMap.get(e.target);
+      if (target) connections.push({ dir: "→", node: target, strength: e.strength, type: e.type });
+    }
+    if (e.target === nodeData.id) {
+      const source = nodeMap.get(e.source);
+      if (source) connections.push({ dir: "←", node: source, strength: e.strength, type: e.type });
+    }
+  });
+  
+  connections.sort((a, b) => b.strength - a.strength);
+  
+  const connHtml = connections.slice(0, 10).map(c => 
+    `<div class="connection-item" style="border-color: ${categoryColors[c.node.category]}">${c.dir} ${c.node.label} <span style="opacity:0.6">(${c.strength.toFixed(2)})</span></div>`
+  ).join("");
+  document.getElementById("detailConnections").innerHTML = connHtml || "接続なし";
+  
+  document.getElementById("nodeDetail").classList.add("visible");
+}
+
+function renderRanking() {
+  const { filteredNodeIds, sourceNodeIds } = buildHierarchy();
+  
+  const statsNodeIds = filteredNodeIds;
+  
+  const stats = {};
+  statsNodeIds.forEach(id => {
+    const node = allNodes.find(n => n.id === id);
+    if (node) {
+      stats[id] = { id, label: node.label, category: node.category, domain: node.domain, outCount: 0, inCount: 0, totalStrength: 0 };
+    }
+  });
+  
+  const edgesToCount = allEdges.filter(e => statsNodeIds.has(e.source) && statsNodeIds.has(e.target))
+    .filter(e => sourceNodeIds.has(e.source) || sourceNodeIds.has(e.target));
+  
+  edgesToCount.filter(e => filters[e.type]).filter(e => e.strength >= strengthMin && e.strength <= strengthMax).forEach(e => {
+    if (stats[e.source]) { stats[e.source].outCount++; stats[e.source].totalStrength += e.strength; }
+    if (stats[e.target]) { stats[e.target].inCount++; stats[e.target].totalStrength += e.strength; }
+  });
+  
+  let statsList = Object.values(stats);
+  
+  // 乗算スコア: degree × totalStrength
+  statsList.forEach(s => {
+    const degree = s.outCount + s.inCount;
+    s.hubScore = degree * s.totalStrength;
+  });
+  
+  statsList.sort((a, b) => b.hubScore - a.hubScore);
+  
+  const topStats = statsList.slice(0, 20);
+  
+  const html = topStats.map((s, i) => {
+    const catColor = categoryColors[s.category] || "#7d8590";
+    const catLabel = categoryLabels[s.category] || s.category;
+    const total = s.outCount + s.inCount;
+    const scoreDisplay = s.hubScore.toFixed(1);
+    
+    return `<div class="ranking-item" data-id="${s.id}" style="border-left-color: ${catColor};">
+      <div class="ranking-rank ${i < 3 ? 'top3' : ''}">${i + 1}</div>
+      <div class="ranking-info">
+        <div class="ranking-name">${s.label}</div>
+        <div class="ranking-category" style="color: ${catColor};">${catLabel}</div>
+      </div>
+      <div class="ranking-stats">
+        <div class="ranking-main-stat">${scoreDisplay}</div>
+        <div class="ranking-sub-stats">${total}本 ×${s.totalStrength.toFixed(1)}</div>
+      </div>
+    </div>`;
+  }).join("");
+  
+  document.getElementById("rankingList").innerHTML = html;
+  
+  document.querySelectorAll(".ranking-item").forEach(item => {
+    item.onclick = function() {
+      const nodeId = this.dataset.id;
+      const nodeData = nodeMap.get(nodeId);
+      if (nodeData) {
+        document.getElementById("detailName").textContent = nodeData.label;
+        document.getElementById("detailSublabel").textContent = nodeData.sublabel;
+        const catTag = document.getElementById("detailCategory");
+        catTag.textContent = categoryLabels[nodeData.category] || nodeData.category;
+        catTag.style.backgroundColor = categoryColors[nodeData.category] + "30";
+        catTag.style.color = categoryColors[nodeData.category];
+        document.getElementById("detailDescription").textContent = nodeDescriptions[nodeData.id] || "説明がありません。";
+        document.getElementById("nodeDetail").classList.add("visible");
+      }
+    };
+  });
+  
+  top5NodeIds = statsList.slice(0, 5).map(s => s.id);
+  
+  // マトリックスを更新
+  updateStatsMatrix();
+}
+
+// 強度値表示のオン/オフ
+let showStrengthLabels = true;
+
+document.getElementById("toggleStrengthLabel").onclick = function() {
+  showStrengthLabels = !showStrengthLabels;
+  this.textContent = showStrengthLabels ? "オン" : "オフ";
+  this.classList.toggle("active", showStrengthLabels);
+  render();
+};
+
+// 領域フィルターの説明文
+const filterDescriptions = {
+  scientist: {
+    title: "🔬 渡辺英治（神経科学者）の思考",
+    content: `<p>基礎生物学研究所の神経科学者・渡辺英治（Eiji Watanabe）の思考ネットワークです。</p>
+    <p><strong>主なテーマ：</strong></p>
+    <ul>
+      <li>予測符号化（Predictive Coding）— 脳は世界を予測し、予測誤差を最小化するシステム</li>
+      <li>錯視研究（Rotating Snake, Kebab Illusion）— 視覚システムの特性を探る</li>
+      <li>意識と自己（Silent Consciousness）— 「意識は基本的にsilentであり言葉を発しない」</li>
+      <li>変換（Transform）— 「錯視を錯視じゃなくす」「動くを動くじゃなくす」</li>
+    </ul>
+    <p><strong>カテゴリー：</strong>計算・予測、知覚・認知、美学・変換、言語・記号、活動・場</p>`
+  },
+  artist: {
+    title: "🎨 渡辺英司（芸術家）の思考",
+    content: `<p>現代美術家・渡辺英司（Eiji Watanabe）の思考ネットワークです。</p>
+    <p><strong>主なテーマ：</strong></p>
+    <ul>
+      <li>小さな転覆（Small Subversion）— 既存の秩序に対する静かな抵抗</li>
+      <li>命名と分類（Naming & Classification）— 言語による世界の分節化への問い</li>
+      <li>蝶瞰図、名前の庭 — 30年以上続く代表的シリーズ</li>
+      <li>切り抜きと蓄積（Cutting & Accumulation）— 図鑑からの切り抜きによる作品制作</li>
+    </ul>
+    <p><strong>カテゴリー：</strong>哲学・存在、言語・記号、美学・変換、作品・素材、活動・場</p>`
+  },
+  bridge: {
+    title: "✨ 邂逅（二人の出会い）",
+    content: `<p>二人の渡辺英治/英司が出会う場と、その思考の直接接続を表します。</p>
+    <p><strong>活動場を介した接続：</strong></p>
+    <ul>
+      <li>W Eiji — 二人のエイジ展（大府市）</li>
+      <li>Morning Monsters — 朝の怪物たち展</li>
+      <li>アートオブリスト — 10周年記念展</li>
+    </ul>
+    <p><strong>直接接続（概念的邂逅）：</strong></p>
+    <ul>
+      <li>Transform ↔ Small Subversion — 「Xをxじゃなくす」構造の同型性</li>
+      <li>見立て（Mitate）— 両者に共通する認識の転換</li>
+      <li>Silent Consciousness ↔ Boundary — 言語を超えた領域への問い</li>
+    </ul>`
+  }
+};
+
+// フィルター説明ウィンドウのトグル
+document.getElementById("filterHelpToggle").onclick = function() {
+  document.getElementById("filterHelp").classList.toggle("visible");
+};
+
+// 初期描画
+renderRanking();
+render();
+</script>
+</body>
+</html>

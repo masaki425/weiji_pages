@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>渡辺英治 思考回路の成長 | 統合分析ダッシュボード v2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+        
+        .container { max-width: 950px; margin: 0 auto; }
+        
+        h1 { font-size: 1.6rem; font-weight: 500; color: #f0f6fc; margin-bottom: 8px; }
+        
+        .subtitle { color: #8b949e; margin-bottom: 24px; font-size: 0.85rem; }
+        
+        .nav-tabs {
+            display: flex; gap: 4px; margin-bottom: 20px;
+            border-bottom: 1px solid #21262d; padding-bottom: 0;
+            flex-wrap: wrap;
+        }
+        
+        .nav-tab {
+            padding: 10px 14px; background: transparent; border: none;
+            color: #8b949e; font-size: 0.8rem; cursor: pointer;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        
+        .nav-tab:hover { color: #c9d1d9; }
+        .nav-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+        .nav-tab .icon { margin-right: 5px; }
+        
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .formula-box {
+            border-radius: 8px; padding: 14px 20px;
+            margin-bottom: 20px; text-align: center;
+        }
+        .formula-box.blue { background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); }
+        .formula-box.purple { background: rgba(136, 87, 229, 0.1); border: 1px solid rgba(136, 87, 229, 0.3); }
+        .formula-box.yellow { background: rgba(249, 199, 79, 0.1); border: 1px solid rgba(249, 199, 79, 0.3); }
+        .formula-box.red { background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); }
+        
+        .formula { font-size: 1.4rem; font-family: 'Georgia', serif; font-style: italic; }
+        .formula.blue { color: #58a6ff; }
+        .formula.purple { color: #d2a8ff; }
+        .formula.yellow { color: #f9c74f; }
+        .formula.red { color: #f85149; }
+        
+        .formula-desc { font-size: 0.85rem; color: #8b949e; margin-top: 8px; }
+        
+        .chart-container {
+            background: rgba(22, 27, 34, 0.6); border-radius: 12px;
+            padding: 24px; margin-bottom: 24px;
+        }
+        
+        .chart-title {
+            font-size: 1rem; color: #f0f6fc; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .chart-title .icon { font-size: 1.2rem; }
+        
+        svg { display: block; }
+        
+        .axis-label { fill: #8b949e; font-size: 11px; }
+        .grid line { stroke: #21262d; stroke-dasharray: 2,2; }
+        .grid path { stroke-width: 0; }
+        
+        .line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        .line-nodes { stroke: #58a6ff; }
+        .line-edges-exist { stroke: #3fb950; }
+        .line-edges-absent { stroke: #f85149; stroke-dasharray: 6,3; }
+        .line-knowledge { stroke: #d2a8ff; }
+        .line-ratio { stroke: #f9c74f; }
+        .line-mean { stroke: #8b949e; stroke-dasharray: 8,4; stroke-width: 2; }
+        
+        .area-knowledge { fill: url(#knowledgeGradient); }
+        .area-ratio { fill: url(#ratioGradient); }
+        .area-explosion { fill: rgba(248, 81, 73, 0.15); }
+        
+        .dot { stroke: #0d1117; stroke-width: 2; cursor: pointer; transition: r 0.2s; }
+        .dot:hover { r: 8; }
+        .dot-nodes { fill: #58a6ff; }
+        .dot-edges-exist { fill: #3fb950; }
+        .dot-edges-absent { fill: #f85149; }
+        .dot-knowledge { fill: #d2a8ff; }
+        .dot-ratio { fill: #f9c74f; }
+        .dot-growth { fill: #ff7b72; }
+        
+        .annotation { font-size: 10px; fill: #8b949e; }
+        .annotation-highlight { fill: #f9c74f; font-weight: 600; }
+        .annotation-explosion { fill: #ff7b72; font-weight: 600; font-size: 11px; }
+        
+        .legend {
+            display: flex; flex-wrap: wrap; gap: 16px;
+            margin-top: 16px; padding-top: 16px; border-top: 1px solid #21262d;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+        .legend-line { width: 20px; height: 3px; border-radius: 2px; }
+        .legend-line.dashed { background: repeating-linear-gradient(90deg, #8b949e 0px, #8b949e 6px, transparent 6px, transparent 10px); }
+        
+        .tooltip {
+            position: absolute; background: rgba(13, 17, 23, 0.95);
+            border: 1px solid #30363d; border-radius: 8px;
+            padding: 12px 16px; font-size: 0.85rem;
+            pointer-events: none; opacity: 0; transition: opacity 0.2s;
+            z-index: 100; max-width: 320px;
+        }
+        .tooltip.visible { opacity: 1; }
+        .tooltip-year { font-size: 1.1rem; font-weight: 600; color: #58a6ff; margin-bottom: 8px; }
+        .tooltip-main { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+        .tooltip-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 2px; }
+        .tooltip-label { color: #8b949e; }
+        .tooltip-value { font-family: 'Monaco', monospace; font-weight: 600; }
+        .tooltip-event { margin-top: 8px; padding-top: 8px; border-top: 1px solid #21262d; color: #f9c74f; font-style: italic; font-size: 0.8rem; }
+        
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px; margin-top: 20px;
+        }
+        .stat-card { background: rgba(22, 27, 34, 0.4); border-radius: 8px; padding: 14px; text-align: center; }
+        .stat-card.highlight { border: 1px solid rgba(136, 87, 229, 0.3); }
+        .stat-card.explosion { border: 1px solid rgba(248, 81, 73, 0.5); background: rgba(248, 81, 73, 0.1); }
+        .stat-value { font-size: 1.6rem; font-weight: 600; margin-bottom: 4px; }
+        .stat-label { font-size: 0.7rem; color: #8b949e; }
+        .stat-sub { font-size: 0.65rem; color: #6e7681; margin-top: 2px; }
+        
+        .insight {
+            background: rgba(88, 166, 255, 0.1); border-left: 3px solid #58a6ff;
+            padding: 16px; margin-top: 20px; border-radius: 0 8px 8px 0;
+        }
+        .insight.yellow { background: rgba(249, 199, 79, 0.1); border-left-color: #f9c74f; }
+        .insight.purple { background: rgba(136, 87, 229, 0.1); border-left-color: #d2a8ff; }
+        .insight.red { background: rgba(248, 81, 73, 0.1); border-left-color: #f85149; }
+        .insight-title { font-size: 0.9rem; color: #58a6ff; margin-bottom: 8px; }
+        .insight.yellow .insight-title { color: #f9c74f; }
+        .insight.purple .insight-title { color: #d2a8ff; }
+        .insight.red .insight-title { color: #f85149; }
+        .insight-text { font-size: 0.85rem; line-height: 1.6; color: #c9d1d9; }
+        
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .data-table th, .data-table td { padding: 10px 8px; text-align: center; border-bottom: 1px solid #21262d; }
+        .data-table th { color: #8b949e; font-weight: 500; font-size: 0.75rem; }
+        .data-table td { color: #c9d1d9; }
+        .data-table .explosion-row { background: rgba(248, 81, 73, 0.1); }
+        
+        .explosion-zone { fill: rgba(248, 81, 73, 0.1); stroke: #f85149; stroke-width: 1; stroke-dasharray: 4,4; }
+        .selection-zone { fill: rgba(248, 81, 73, 0.08); stroke: #f85149; stroke-width: 1; stroke-dasharray: 4,4; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>渡辺英治 思考回路の成長 v2</h1>
+        <p class="subtitle">ノード・エッジ・知識の時系列分析（爆発期の数的特性を含む）— 2005–2025</p>
+        
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-section="overview"><span class="icon">📊</span>概要</button>
+            <button class="nav-tab" data-section="explosion"><span class="icon">💥</span>爆発期分析</button>
+            <button class="nav-tab" data-section="absent"><span class="icon">⊗</span>不在エッジ</button>
+            <button class="nav-tab" data-section="ratio"><span class="icon">🔍</span>E/N比</button>
+            <button class="nav-tab" data-section="data"><span class="icon">📋</span>データ</button>
+        </div>
+        
+        <!-- ==================== SECTION: Overview ==================== -->
+        <div class="section active" id="section-overview">
+            <div class="formula-box purple">
+                <div class="formula purple">K = N + E<sub>存在</sub></div>
+                <div class="formula-desc">知識量 K = ノード数 N（概念）+ 存在エッジ数 E（接続）</div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">🌐</span> 知識構造の成長（2005–2025）</div>
+                <div id="chart-overview"></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-line" style="background: #d2a8ff;"></div><span>知識 K = N + E</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #3fb950;"></div><span>存在エッジ E</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #58a6ff;"></div><span>ノード N</span></div>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" style="color: #58a6ff;">42</div><div class="stat-label">ノード N</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #3fb950;">81</div><div class="stat-label">存在エッジ E</div></div>
+                <div class="stat-card highlight"><div class="stat-value" style="color: #d2a8ff;">123</div><div class="stat-label">知識量 K</div><div class="stat-sub">= 42 + 81</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #f9c74f;">1.93</div><div class="stat-label">E/N比</div></div>
+            </div>
+            
+            <div class="insight">
+                <div class="insight-title">💡 20年間の発見</div>
+                <div class="insight-text">
+                    <strong>2007年</strong>：核心概念の爆発的生成（ΔK=+22, 成長率7.33）— 「Silent Consciousness」誕生<br>
+                    <strong>2018年</strong>：唯一の淘汰爆発（淘汰率1.33）— 8本のエッジが離脱（Flash-lag → PredNet など）<br>
+                    <strong>E/N比の安定性</strong>：変動係数11%で20年間ほぼ一定（平均≈2.0）
+                </div>
+            </div>
+        </div>
+        
+        <!-- ==================== SECTION: Explosion Analysis ==================== -->
+        <div class="section" id="section-explosion">
+            <div class="formula-box red">
+                <div class="formula red">爆発期の定義: ΔK / K(t-1) > 1.0</div>
+                <div class="formula-desc">知識成長率が1.0を超える年を「爆発期」と定義</div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">💥</span> 知識成長率の推移（爆発期をハイライト）</div>
+                <div id="chart-growth-rate"></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-line" style="background: #ff7b72;"></div><span>成長率 ΔK/K(t-1)</span></div>
+                    <div class="legend-item"><div class="legend-line dashed"></div><span>爆発閾値（1.0）</span></div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">📈</span> 年間増加量 ΔN, ΔE, ΔK の比較</div>
+                <div id="chart-delta"></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-line" style="background: #58a6ff;"></div><span>ΔN（ノード増加）</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #3fb950;"></div><span>ΔE（エッジ増加）</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #d2a8ff;"></div><span>ΔK（知識増加）</span></div>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card explosion">
+                    <div class="stat-value" style="color: #ff7b72;">7.33</div>
+                    <div class="stat-label">2007年成長率</div>
+                    <div class="stat-sub">3→25 (+22)</div>
+                </div>
+                <div class="stat-card explosion">
+                    <div class="stat-value" style="color: #ff7b72;">1.00</div>
+                    <div class="stat-label">2008年成長率</div>
+                    <div class="stat-sub">25→50 (+25)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #d2a8ff;">2</div>
+                    <div class="stat-label">爆発期の数</div>
+                    <div class="stat-sub">2007, 2008</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #3fb950;">47</div>
+                    <div class="stat-label">爆発期のΔK合計</div>
+                    <div class="stat-sub">全体の38%</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">🔬</span> 爆発期の詳細分析</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>指標</th><th>2007年（爆発①）</th><th>2008年（爆発②）</th><th>平均</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>ΔN（ノード増加）</td><td style="color:#58a6ff;">+7</td><td style="color:#58a6ff;">+7</td><td>+4.6</td></tr>
+                        <tr><td>ΔE（エッジ増加）</td><td style="color:#3fb950;">+15</td><td style="color:#3fb950;">+18</td><td>+8.8</td></tr>
+                        <tr><td>ΔK（知識増加）</td><td style="color:#d2a8ff;">+22</td><td style="color:#d2a8ff;">+25</td><td>+13.3</td></tr>
+                        <tr><td>成長率 ΔK/K(t-1)</td><td style="color:#ff7b72;">7.33</td><td style="color:#ff7b72;">1.00</td><td>0.28</td></tr>
+                        <tr><td>ΔE/ΔN 比</td><td style="color:#f9c74f;">2.14</td><td style="color:#f9c74f;">2.57</td><td>1.91</td></tr>
+                        <tr><td>主要イベント</td><td>Silent Consciousness</td><td>Pop Art宣言</td><td>—</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="insight red">
+                <div class="insight-title">💥 爆発期の数的特性</div>
+                <div class="insight-text">
+                    <strong>2007年（7.33）</strong>：K=3→25、最大の爆発。「Consciousnessは基本的にsilent」誕生、iCore/RF仮説、Kebab Illusion発見。<br>
+                    <strong>2008年（1.00）</strong>：K=25→50、継続的爆発。「Art は Illusion そのもの」宣言、Pop Art四変奏の構想。<br><br>
+                    <strong>爆発期の寄与</strong>：2年間で全知識の38%（47/123）を生成。思考構造の「結晶化」が短期間に起きた。
+                </div>
+            </div>
+        </div>
+        
+        <!-- ==================== SECTION: Absent Edges ==================== -->
+        <div class="section" id="section-absent">
+            <div class="formula-box red">
+                <div class="formula red">E<sub>不在</sub> = E<sub>離脱</sub> + E<sub>保留</sub> + E<sub>緊張</sub></div>
+                <div class="formula-desc">不在エッジ = かつて存在した接続の切断 + 意図的未架橋 + 概念的緊張</div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">⊗</span> 不在エッジの推移（3カテゴリ別）</div>
+                <div id="chart-absent"></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-line" style="background: #ff7b72;"></div><span>🦴 離脱（Departed）</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #f9c74f;"></div><span>⏳ 保留（Suspended）</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #d2a8ff;"></div><span>🤫 緊張（Tension）</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #f85149; height: 3px; background: repeating-linear-gradient(90deg, #f85149 0px, #f85149 6px, transparent 6px, transparent 10px);"></div><span>総不在</span></div>
+                </div>
+            </div>
+            
+            <div class="formula-box yellow">
+                <div class="formula yellow">淘汰率 = ΔE<sub>不在</sub> / E<sub>不在</sub>(t-1)</div>
+                <div class="formula-desc">不在エッジの増加率（無単位、1.0 = 倍増）</div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">🔻</span> 淘汰率の推移</div>
+                <div id="chart-pruning-rate"></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-line" style="background: #f85149;"></div><span>淘汰率</span></div>
+                    <div class="legend-item"><div class="legend-line dashed"></div><span>淘汰爆発閾値（1.0）</span></div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">📊</span> 不在エッジの構成比（積み上げ）</div>
+                <div id="chart-absent-stacked"></div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" style="color: #f85149;">26</div><div class="stat-label">総不在エッジ</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #ff7b72;">8</div><div class="stat-label">🦴 離脱（Departed）</div><div class="stat-sub">かつて存在した接続</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #f9c74f;">8</div><div class="stat-label">⏳ 保留（Suspended）</div><div class="stat-sub">意図的未架橋</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #d2a8ff;">10</div><div class="stat-label">🤫 緊張（Tension）</div><div class="stat-sub">概念的緊張関係</div></div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card explosion">
+                    <div class="stat-value" style="color: #f85149;">1.33</div>
+                    <div class="stat-label">2018年淘汰率</div>
+                    <div class="stat-sub">6→14 (+8) ★唯一の淘汰爆発</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #8b949e;">0.44</div>
+                    <div class="stat-label">平均淘汰率</div>
+                    <div class="stat-sub">2014-2025</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">🦴</span> 主要な離脱エッジ</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>離脱エッジ</th><th>強度</th><th>時期</th><th>意味</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Flash-lag → PredNet</td><td style="color:#ff7b72;">0.75</td><td>2010→2018</td><td>2010年論文主題が2018年で除外</td></tr>
+                        <tr><td>bPopArt → iPopArt</td><td style="color:#ff7b72;">0.60</td><td>2008→2010s</td><td>Bio Pop Artは選択されず</td></tr>
+                        <tr><td>nPopArt → iPopArt</td><td style="color:#ff7b72;">0.60</td><td>2008→2010s</td><td>Neuro Pop Artは発展せず</td></tr>
+                        <tr><td>sPopArt → iPopArt</td><td style="color:#ff7b72;">0.60</td><td>2008→2010s</td><td>Scientific Pop Artは発展せず</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">⏳</span> 主要な保留エッジ</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>保留エッジ</th><th>強度</th><th>意味</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>EIKEN → Consciousness</td><td style="color:#f9c74f;">0.85</td><td>LLM+知覚モデルと意識の関係は慎重に未定義</td></tr>
+                        <tr><td>PQR Method → Consciousness</td><td style="color:#f9c74f;">0.80</td><td>統合学習理論と意識の統合は戦略的に保留</td></tr>
+                        <tr><td>Fish Eye → Consciousness</td><td style="color:#f9c74f;">0.80</td><td>非人間的知覚と意識の架橋は重要だが未構築</td></tr>
+                        <tr><td>見立て → Rotating Snake</td><td style="color:#f9c74f;">0.75</td><td>日本美学と錯視の関係を示唆するが保留</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">🤫</span> 主要な緊張エッジ</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>緊張エッジ</th><th>強度</th><th>意味</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>数式化は不正確 ↔ PredNet</td><td style="color:#d2a8ff;">0.90</td><td>DNNを使いながら数式化を批判する核心的緊張</td></tr>
+                        <tr><td>こころのかたち ↔ Predictive Coding</td><td style="color:#d2a8ff;">0.85</td><td>心を科学で説明することへの深い慎重さ</td></tr>
+                        <tr><td>Consciousness ↔ Flash-lag</td><td style="color:#d2a8ff;">0.80</td><td>錯視研究者として意識と錯視の直接接続があるべき</td></tr>
+                        <tr><td>Consciousness ↔ Kebab Illusion</td><td style="color:#d2a8ff;">0.75</td><td>自身が発見した錯視と意識の関係が語られない</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="insight red">
+                <div class="insight-title">🔻 淘汰率と成長率の時間的ずれ</div>
+                <div class="insight-text">
+                    <strong>知識Kの爆発期</strong>：2007年（7.33）、2008年（1.00）— 思考構造の「構築期」<br>
+                    <strong>不在Eの淘汰爆発</strong>：2018年（1.33）— 思考構造の「選択期」<br><br>
+                    <strong>洞察</strong>：構築と淘汰は**異なるフェーズ**で起きる。まず概念を爆発的に生成し（2007-2008）、その後10年かけて選択・離脱が進む（2018）。
+                </div>
+            </div>
+        </div>
+        
+        <!-- ==================== SECTION: E/N Ratio ==================== -->
+        <div class="section" id="section-ratio">
+            <div class="formula-box yellow">
+                <div class="formula yellow">ρ = E<sub>存在</sub> / N</div>
+                <div class="formula-desc">接続密度 ρ =「1つの概念が平均して何本の接続を持つか」</div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">🔍</span> E/N比の推移</div>
+                <div id="chart-ratio"></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-line" style="background: #f9c74f;"></div><span>E/N比</span></div>
+                    <div class="legend-item"><div class="legend-line dashed"></div><span>平均 μ = 2.00</span></div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">📈</span> N と E の成長（対数スケール）</div>
+                <div id="chart-log"></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-line" style="background: #58a6ff;"></div><span>ノード N</span></div>
+                    <div class="legend-item"><div class="legend-line" style="background: #3fb950;"></div><span>存在エッジ E</span></div>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card highlight"><div class="stat-value" style="color: #f9c74f;">2.00</div><div class="stat-label">平均 μ</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #7ee787;">2.56</div><div class="stat-label">最大</div><div class="stat-sub">2014年</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #ff7b72;">2.00</div><div class="stat-label">最小</div><div class="stat-sub">2005年</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #8b949e;">0.22</div><div class="stat-label">標準偏差 σ</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #d2a8ff;">11%</div><div class="stat-label">変動係数</div><div class="stat-sub">σ/μ</div></div>
+            </div>
+            
+            <div class="insight yellow">
+                <div class="insight-title">💡 驚くべき安定性</div>
+                <div class="insight-text">
+                    <strong>変動係数11%</strong>：20年間にわたりE/N比はほぼ一定を維持。
+                    爆発期（2007-2008）でもE/N比は2.13→2.33と安定。<br><br>
+                    <strong>淘汰期（2018）</strong>：存在エッジが減少（64→60）したにもかかわらず、E/N比は2.14と平均付近を維持。淘汰によって構造が「整理」されたことを示唆。<br><br>
+                    <strong>ホメオスタシス</strong>：概念の追加（N）と接続の構築（E）が連動している。新しい概念が加わるたびに、約2本の接続が形成される。思考システムの自己調整機能の証拠。
+                </div>
+            </div>
+        </div>
+        
+        <!-- ==================== SECTION: Data ==================== -->
+        <div class="section" id="section-data">
+            <div class="chart-container">
+                <div class="chart-title"><span class="icon">📋</span> 全データテーブル（爆発期・淘汰期ハイライト）</div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>年</th><th>N</th><th>E存在</th><th>K</th><th>ΔK</th><th>成長率</th><th>E/N</th><th>E不在</th><th>淘汰率</th><th>フェーズ</th></tr>
+                    </thead>
+                    <tbody id="dataTableBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="insight purple">
+                <div class="insight-title">📊 データの定義</div>
+                <div class="insight-text">
+                    <strong>K = N + E<sub>存在</sub></strong>：知識量は概念数と存在する接続数の和<br>
+                    <strong>E<sub>不在</sub></strong>：離脱 + 保留 + 緊張の合計（知識量Kに含まない）<br>
+                    <strong>成長率</strong>：ΔK / K(t-1)（無単位、1.0 = 倍増）<br>
+                    <strong>淘汰率</strong>：ΔE<sub>不在</sub> / E<sub>不在</sub>(t-1)（無単位、1.0 = 倍増）
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    
+    <script>
+        // ==================== DATA ====================
+        // K = N + E存在（不在エッジは含まない）
+        // 不在エッジは3カテゴリ：離脱(departed)・保留(suspended)・緊張(tension)
+        const data = [
+            { year: 2005, nodes: 1, edgesExist: 2, departed: 0, suspended: 0, tension: 0, event: "基盤形成期" },
+            { year: 2007, nodes: 8, edgesExist: 17, departed: 0, suspended: 0, tension: 0, event: "核心概念確立期 ★爆発①", explosion: true },
+            { year: 2008, nodes: 15, edgesExist: 35, departed: 0, suspended: 0, tension: 0, event: "科学と芸術の融合期 ★爆発②", explosion: true },
+            { year: 2010, nodes: 22, edgesExist: 57, departed: 0, suspended: 2, tension: 2, event: "予測符号化理論発展期" },
+            { year: 2011, nodes: 23, edgesExist: 60, departed: 0, suspended: 2, tension: 2, event: "モデルの精緻化" },
+            { year: 2014, nodes: 25, edgesExist: 64, departed: 3, suspended: 2, tension: 1, event: "非人間的知覚への拡張" },
+            { year: 2018, nodes: 28, edgesExist: 60, departed: 6, suspended: 4, tension: 4, event: "計算論的実証 ★転換点" },
+            { year: 2023, nodes: 36, edgesExist: 74, departed: 8, suspended: 7, tension: 7, event: "統合と未来構想期" },
+            { year: 2025, nodes: 42, edgesExist: 81, departed: 8, suspended: 8, tension: 10, event: "具現化期" }
+        ];
+        
+        // Calculate derived values: K = N + E存在
+        data.forEach((d, i) => {
+            d.edgesAbsent = d.departed + d.suspended + d.tension;  // 総不在エッジ
+            d.knowledge = d.nodes + d.edgesExist;  // K = N + E存在のみ
+            d.ratio = d.edgesExist / d.nodes;       // E存在/N
+            d.deltaK = i > 0 ? d.knowledge - data[i-1].knowledge : d.knowledge;
+            d.deltaN = i > 0 ? d.nodes - data[i-1].nodes : d.nodes;
+            d.deltaE = i > 0 ? d.edgesExist - data[i-1].edgesExist : d.edgesExist;
+            d.deltaAbsent = i > 0 ? d.edgesAbsent - data[i-1].edgesAbsent : d.edgesAbsent;
+            d.prevK = i > 0 ? data[i-1].knowledge : 0;
+            d.prevAbsent = i > 0 ? data[i-1].edgesAbsent : 0;
+            d.growthRate = d.prevK > 0 ? (d.deltaK / d.prevK) : null;  // 無単位スケール（1.0 = 100%）
+            d.pruningRate = d.prevAbsent > 0 ? (d.deltaAbsent / d.prevAbsent) : null;  // 剪定率（無単位）
+        });
+        
+        // Statistics
+        const ratios = data.map(d => d.ratio);
+        const mean = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+        const std = Math.sqrt(ratios.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / ratios.length);
+        
+        // ==================== TAB NAVIGATION ====================
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('section-' + tab.dataset.section).classList.add('active');
+            });
+        });
+        
+        // ==================== TOOLTIP ====================
+        const tooltip = d3.select("#tooltip");
+        
+        function showTooltip(event, d, type) {
+            let html = `<div class="tooltip-year">${d.year}年${d.explosion ? ' 💥爆発期' : ''}</div>`;
+            
+            if (type === 'knowledge') {
+                html += `<div class="tooltip-main" style="color: #d2a8ff;">K = ${d.knowledge}</div>`;
+            } else if (type === 'ratio') {
+                html += `<div class="tooltip-main" style="color: #f9c74f;">E/N = ${d.ratio.toFixed(2)}</div>`;
+            } else if (type === 'growth') {
+                html += `<div class="tooltip-main" style="color: #ff7b72;">成長率 = ${d.growthRate ? d.growthRate.toFixed(2) : '—'}</div>`;
+            } else if (type === 'absent') {
+                html += `<div class="tooltip-main" style="color: #f85149;">不在 = ${d.edgesAbsent}</div>`;
+            } else if (type === 'pruning') {
+                html += `<div class="tooltip-main" style="color: #f85149;">淘汰率 = ${d.pruningRate ? d.pruningRate.toFixed(2) : '—'}</div>`;
+            }
+            
+            html += `
+                <div class="tooltip-row"><span class="tooltip-label">ノード N:</span><span class="tooltip-value" style="color:#58a6ff;">${d.nodes}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">存在エッジ E:</span><span class="tooltip-value" style="color:#3fb950;">${d.edgesExist}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">知識 K:</span><span class="tooltip-value" style="color:#d2a8ff;">${d.knowledge}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">ΔK:</span><span class="tooltip-value" style="color:#7ee787;">${d.deltaK >= 0 ? '+' : ''}${d.deltaK}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">成長率:</span><span class="tooltip-value" style="color:#ff7b72;">${d.growthRate ? d.growthRate.toFixed(2) : '—'}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">🦴 離脱:</span><span class="tooltip-value" style="color:#ff7b72;">${d.departed}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">⏳ 保留:</span><span class="tooltip-value" style="color:#f9c74f;">${d.suspended}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">🤫 緊張:</span><span class="tooltip-value" style="color:#d2a8ff;">${d.tension}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">不在計:</span><span class="tooltip-value" style="color:#f85149;">${d.edgesAbsent}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">ΔE不在:</span><span class="tooltip-value" style="color:#f85149;">${d.deltaAbsent >= 0 ? '+' : ''}${d.deltaAbsent}</span></div>
+                <div class="tooltip-row"><span class="tooltip-label">淘汰率:</span><span class="tooltip-value" style="color:#f85149;">${d.pruningRate ? d.pruningRate.toFixed(2) : '—'}</span></div>
+                <div class="tooltip-event">${d.event}</div>
+            `;
+            
+            tooltip.classed("visible", true)
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY - 10) + "px")
+                .html(html);
+        }
+        
+        function hideTooltip() { tooltip.classed("visible", false); }
+        
+        // ==================== CHART SETUP ====================
+        const margin = { top: 30, right: 70, bottom: 40, left: 50 };
+        const width = 850 - margin.left - margin.right;
+        const height = 300 - margin.top - margin.bottom;
+        
+        const x = d3.scaleLinear().domain([2004, 2026]).range([0, width]);
+        const yLeft = d3.scaleLinear().domain([0, 140]).range([height, 0]);
+        
+        // ==================== CHART: Overview ====================
+        const svgOverview = d3.select("#chart-overview").append("svg")
+            .attr("width", width + margin.left + margin.right + 50)
+            .attr("height", height + margin.top + margin.bottom);
+        
+        const defs = svgOverview.append("defs");
+        defs.append("linearGradient").attr("id", "knowledgeGradient")
+            .attr("x1", "0%").attr("y1", "100%").attr("x2", "0%").attr("y2", "0%")
+            .selectAll("stop").data([{offset: "0%", color: "rgba(136, 87, 229, 0)"}, {offset: "100%", color: "rgba(136, 87, 229, 0.2)"}])
+            .enter().append("stop").attr("offset", d => d.offset).attr("stop-color", d => d.color);
+        
+        defs.append("linearGradient").attr("id", "ratioGradient")
+            .attr("x1", "0%").attr("y1", "100%").attr("x2", "0%").attr("y2", "0%")
+            .selectAll("stop").data([{offset: "0%", color: "rgba(249, 199, 79, 0)"}, {offset: "100%", color: "rgba(249, 199, 79, 0.3)"}])
+            .enter().append("stop").attr("offset", d => d.offset).attr("stop-color", d => d.color);
+        
+        const gOverview = svgOverview.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        gOverview.append("g").attr("class", "grid").call(d3.axisLeft(yLeft).tickSize(-width).tickFormat(""));
+        gOverview.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gOverview.append("g").call(d3.axisLeft(yLeft)).selectAll("text").attr("fill", "#8b949e");
+        
+        // Explosion zone
+        gOverview.append("rect").attr("class", "explosion-zone")
+            .attr("x", x(2006.5)).attr("y", 0).attr("width", x(2008.5) - x(2006.5)).attr("height", height);
+        
+        // Selection zone (淘汰期 2018)
+        gOverview.append("rect").attr("class", "selection-zone")
+            .attr("x", x(2017.5)).attr("y", 0).attr("width", x(2018.5) - x(2017.5)).attr("height", height);
+        
+        // Lines
+        const lineK = d3.line().x(d => x(d.year)).y(d => yLeft(d.knowledge)).curve(d3.curveMonotoneX);
+        const lineE = d3.line().x(d => x(d.year)).y(d => yLeft(d.edgesExist)).curve(d3.curveMonotoneX);
+        const lineN = d3.line().x(d => x(d.year)).y(d => yLeft(d.nodes)).curve(d3.curveMonotoneX);
+        
+        const areaKnowledge = d3.area().x(d => x(d.year)).y0(height).y1(d => yLeft(d.knowledge)).curve(d3.curveMonotoneX);
+        gOverview.append("path").datum(data).attr("class", "area-knowledge").attr("d", areaKnowledge);
+        
+        gOverview.append("path").datum(data).attr("class", "line line-edges-exist").attr("d", lineE);
+        gOverview.append("path").datum(data).attr("class", "line line-nodes").attr("d", lineN);
+        gOverview.append("path").datum(data).attr("class", "line line-knowledge").attr("d", lineK).attr("stroke-width", 4);
+        
+        gOverview.selectAll(".dot-o").data(data).enter().append("circle")
+            .attr("class", d => d.explosion ? "dot dot-growth" : "dot dot-knowledge")
+            .attr("cx", d => x(d.year)).attr("cy", d => yLeft(d.knowledge)).attr("r", d => d.explosion ? 7 : 5)
+            .on("mouseover", (e, d) => showTooltip(e, d, 'knowledge')).on("mouseout", hideTooltip);
+        
+        gOverview.append("text").attr("class", "annotation-explosion").attr("x", x(2007.5)).attr("y", 15).attr("text-anchor", "middle").text("💥 爆発期");
+        gOverview.append("text").attr("class", "annotation-explosion").attr("x", x(2018)).attr("y", 15).attr("text-anchor", "middle").text("🔻 淘汰期");
+        
+        const last = data[data.length - 1];
+        gOverview.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yLeft(last.knowledge)).attr("fill", "#d2a8ff").attr("font-weight", "600").text(`K=${last.knowledge}`);
+        gOverview.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yLeft(last.edgesExist)).attr("fill", "#3fb950").text(`E=${last.edgesExist}`);
+        gOverview.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yLeft(last.nodes)).attr("fill", "#58a6ff").text(`N=${last.nodes}`);
+        
+        // ==================== CHART: Growth Rate ====================
+        const svgGrowthRate = d3.select("#chart-growth-rate").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+        const gGrowthRate = svgGrowthRate.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        const xBand = d3.scaleBand().domain(data.map(d => d.year)).range([0, width]).padding(0.3);
+        const yGrowthRate = d3.scaleLinear().domain([0, 8]).range([height, 0]);
+        
+        gGrowthRate.append("g").attr("class", "grid").call(d3.axisLeft(yGrowthRate).tickSize(-width).tickFormat(""));
+        gGrowthRate.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(xBand).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gGrowthRate.append("g").call(d3.axisLeft(yGrowthRate)).selectAll("text").attr("fill", "#8b949e");
+        
+        // Explosion threshold line
+        gGrowthRate.append("line").attr("class", "line-mean").attr("x1", 0).attr("x2", width).attr("y1", yGrowthRate(1.0)).attr("y2", yGrowthRate(1.0));
+        gGrowthRate.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yGrowthRate(1.0)).attr("fill", "#8b949e").text("1.0");
+        
+        // Explosion zone
+        gGrowthRate.append("rect").attr("class", "area-explosion")
+            .attr("x", xBand(2007) - xBand.bandwidth() * 0.2).attr("y", 0)
+            .attr("width", xBand.bandwidth() * 2.4 + xBand.step() - xBand.bandwidth()).attr("height", height)
+            .attr("rx", 8);
+        
+        // Bars
+        gGrowthRate.selectAll(".bar-gr").data(data.filter(d => d.growthRate !== null)).enter().append("rect")
+            .attr("x", d => xBand(d.year)).attr("y", d => yGrowthRate(Math.min(d.growthRate, 7.5)))
+            .attr("width", xBand.bandwidth()).attr("height", d => yGrowthRate(0) - yGrowthRate(Math.min(d.growthRate, 7.5)))
+            .attr("fill", d => d.explosion ? "#ff7b72" : "#6e40aa").attr("rx", 4)
+            .on("mouseover", (e, d) => showTooltip(e, d, 'growth')).on("mouseout", hideTooltip);
+        
+        // Labels
+        gGrowthRate.selectAll(".bar-label-gr").data(data.filter(d => d.growthRate !== null)).enter().append("text")
+            .attr("x", d => xBand(d.year) + xBand.bandwidth() / 2).attr("y", d => yGrowthRate(Math.min(d.growthRate, 7.5)) - 5)
+            .attr("text-anchor", "middle").attr("fill", d => d.explosion ? "#ff7b72" : "#d2a8ff").attr("font-size", "9px").attr("font-weight", "600")
+            .text(d => d.growthRate > 7.5 ? '7.33' : d.growthRate.toFixed(2));
+        
+        // ==================== CHART: Delta Comparison ====================
+        const svgDelta = d3.select("#chart-delta").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+        const gDelta = svgDelta.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        const yDelta = d3.scaleLinear().domain([-10, 35]).range([height, 0]);
+        
+        gDelta.append("g").attr("class", "grid").call(d3.axisLeft(yDelta).tickSize(-width).tickFormat(""));
+        gDelta.append("g").attr("transform", `translate(0,${yDelta(0)})`).call(d3.axisBottom(xBand).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gDelta.append("g").call(d3.axisLeft(yDelta)).selectAll("text").attr("fill", "#8b949e");
+        
+        const barW = xBand.bandwidth() / 3;
+        
+        gDelta.selectAll(".bar-dn").data(data).enter().append("rect")
+            .attr("x", d => xBand(d.year)).attr("y", d => yDelta(Math.max(0, d.deltaN)))
+            .attr("width", barW).attr("height", d => Math.abs(yDelta(0) - yDelta(d.deltaN)))
+            .attr("fill", "#58a6ff").attr("rx", 2);
+        
+        gDelta.selectAll(".bar-de").data(data).enter().append("rect")
+            .attr("x", d => xBand(d.year) + barW).attr("y", d => yDelta(Math.max(0, d.deltaE)))
+            .attr("width", barW).attr("height", d => Math.abs(yDelta(0) - yDelta(d.deltaE)))
+            .attr("fill", "#3fb950").attr("rx", 2);
+        
+        gDelta.selectAll(".bar-dk").data(data).enter().append("rect")
+            .attr("x", d => xBand(d.year) + barW * 2).attr("y", d => yDelta(Math.max(0, d.deltaK)))
+            .attr("width", barW).attr("height", d => Math.abs(yDelta(0) - yDelta(d.deltaK)))
+            .attr("fill", "#d2a8ff").attr("rx", 2);
+        
+        // Explosion annotation
+        gDelta.append("text").attr("class", "annotation-explosion").attr("x", xBand(2007) + xBand.bandwidth()).attr("y", yDelta(22) - 25).attr("text-anchor", "middle").text("💥");
+        gDelta.append("text").attr("class", "annotation-explosion").attr("x", xBand(2008) + xBand.bandwidth()).attr("y", yDelta(25) - 25).attr("text-anchor", "middle").text("💥");
+        
+        // ==================== CHART: Absent Edges (3 Categories) ====================
+        const svgAbsent = d3.select("#chart-absent").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+        const gAbsent = svgAbsent.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        const yAbsent = d3.scaleLinear().domain([0, 30]).range([height, 0]);
+        
+        gAbsent.append("g").attr("class", "grid").call(d3.axisLeft(yAbsent).tickSize(-width).tickFormat(""));
+        gAbsent.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gAbsent.append("g").call(d3.axisLeft(yAbsent)).selectAll("text").attr("fill", "#8b949e");
+        
+        // 2018 highlight
+        gAbsent.append("rect").attr("x", x(2017.5)).attr("y", 0).attr("width", x(2018.5) - x(2017.5)).attr("height", height).attr("fill", "rgba(248, 81, 73, 0.15)");
+        gAbsent.append("text").attr("class", "annotation-explosion").attr("x", x(2018)).attr("y", 15).attr("text-anchor", "middle").text("転換点");
+        
+        // Lines for each category
+        const lineDeparted = d3.line().x(d => x(d.year)).y(d => yAbsent(d.departed)).curve(d3.curveMonotoneX);
+        const lineSuspended = d3.line().x(d => x(d.year)).y(d => yAbsent(d.suspended)).curve(d3.curveMonotoneX);
+        const lineTension = d3.line().x(d => x(d.year)).y(d => yAbsent(d.tension)).curve(d3.curveMonotoneX);
+        const lineTotal = d3.line().x(d => x(d.year)).y(d => yAbsent(d.edgesAbsent)).curve(d3.curveMonotoneX);
+        
+        // Draw lines
+        gAbsent.append("path").datum(data).attr("fill", "none").attr("stroke", "#ff7b72").attr("stroke-width", 2.5).attr("d", lineDeparted);
+        gAbsent.append("path").datum(data).attr("fill", "none").attr("stroke", "#f9c74f").attr("stroke-width", 2.5).attr("d", lineSuspended);
+        gAbsent.append("path").datum(data).attr("fill", "none").attr("stroke", "#d2a8ff").attr("stroke-width", 2.5).attr("d", lineTension);
+        gAbsent.append("path").datum(data).attr("fill", "none").attr("stroke", "#f85149").attr("stroke-width", 3).attr("stroke-dasharray", "6,3").attr("d", lineTotal);
+        
+        // Dots for departed
+        gAbsent.selectAll(".dot-dep").data(data).enter().append("circle")
+            .attr("cx", d => x(d.year)).attr("cy", d => yAbsent(d.departed)).attr("r", 4)
+            .attr("fill", "#ff7b72").attr("stroke", "#0d1117").attr("stroke-width", 1.5)
+            .style("cursor", "pointer")
+            .on("mouseover", (e, d) => showTooltip(e, d, 'absent')).on("mouseout", hideTooltip);
+        
+        // Dots for suspended
+        gAbsent.selectAll(".dot-sus").data(data).enter().append("circle")
+            .attr("cx", d => x(d.year)).attr("cy", d => yAbsent(d.suspended)).attr("r", 4)
+            .attr("fill", "#f9c74f").attr("stroke", "#0d1117").attr("stroke-width", 1.5)
+            .style("cursor", "pointer")
+            .on("mouseover", (e, d) => showTooltip(e, d, 'absent')).on("mouseout", hideTooltip);
+        
+        // Dots for tension
+        gAbsent.selectAll(".dot-ten").data(data).enter().append("circle")
+            .attr("cx", d => x(d.year)).attr("cy", d => yAbsent(d.tension)).attr("r", 4)
+            .attr("fill", "#d2a8ff").attr("stroke", "#0d1117").attr("stroke-width", 1.5)
+            .style("cursor", "pointer")
+            .on("mouseover", (e, d) => showTooltip(e, d, 'absent')).on("mouseout", hideTooltip);
+        
+        // Annotations
+        gAbsent.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yAbsent(last.departed)).attr("fill", "#ff7b72").text(`離脱=${last.departed}`);
+        gAbsent.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yAbsent(last.suspended) + 12).attr("fill", "#f9c74f").text(`保留=${last.suspended}`);
+        gAbsent.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yAbsent(last.tension) - 10).attr("fill", "#d2a8ff").text(`緊張=${last.tension}`);
+        gAbsent.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yAbsent(last.edgesAbsent)).attr("fill", "#f85149").attr("font-weight", "600").text(`計=${last.edgesAbsent}`);
+        
+        // ==================== CHART: Absent Stacked ====================
+        const svgAbsentStacked = d3.select("#chart-absent-stacked").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+        const gAbsentStacked = svgAbsentStacked.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        gAbsentStacked.append("g").attr("class", "grid").call(d3.axisLeft(yAbsent).tickSize(-width).tickFormat(""));
+        gAbsentStacked.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gAbsentStacked.append("g").call(d3.axisLeft(yAbsent)).selectAll("text").attr("fill", "#8b949e");
+        
+        // 2018 highlight
+        gAbsentStacked.append("rect").attr("x", x(2017.5)).attr("y", 0).attr("width", x(2018.5) - x(2017.5)).attr("height", height).attr("fill", "rgba(248, 81, 73, 0.08)");
+        
+        // Stacked areas
+        const areaDeparted = d3.area().x(d => x(d.year)).y0(height).y1(d => yAbsent(d.departed)).curve(d3.curveMonotoneX);
+        const areaSuspended = d3.area().x(d => x(d.year)).y0(d => yAbsent(d.departed)).y1(d => yAbsent(d.departed + d.suspended)).curve(d3.curveMonotoneX);
+        const areaTension = d3.area().x(d => x(d.year)).y0(d => yAbsent(d.departed + d.suspended)).y1(d => yAbsent(d.edgesAbsent)).curve(d3.curveMonotoneX);
+        
+        gAbsentStacked.append("path").datum(data).attr("fill", "rgba(255, 123, 114, 0.4)").attr("d", areaDeparted);
+        gAbsentStacked.append("path").datum(data).attr("fill", "rgba(249, 199, 79, 0.4)").attr("d", areaSuspended);
+        gAbsentStacked.append("path").datum(data).attr("fill", "rgba(210, 168, 255, 0.4)").attr("d", areaTension);
+        
+        // Dots for total
+        gAbsentStacked.selectAll(".dot-total").data(data).enter().append("circle")
+            .attr("cx", d => x(d.year)).attr("cy", d => yAbsent(d.edgesAbsent)).attr("r", 5)
+            .attr("fill", "#f85149").attr("stroke", "#0d1117").attr("stroke-width", 2)
+            .style("cursor", "pointer")
+            .on("mouseover", (e, d) => showTooltip(e, d, 'absent')).on("mouseout", hideTooltip);
+        
+        // ==================== CHART: Pruning Rate ====================
+        const svgPruningRate = d3.select("#chart-pruning-rate").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+        const gPruningRate = svgPruningRate.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        const xBandPruning = d3.scaleBand().domain(data.map(d => d.year)).range([0, width]).padding(0.3);
+        const yPruningRate = d3.scaleLinear().domain([0, 2]).range([height, 0]);
+        
+        gPruningRate.append("g").attr("class", "grid").call(d3.axisLeft(yPruningRate).tickSize(-width).tickFormat(""));
+        gPruningRate.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(xBandPruning).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gPruningRate.append("g").call(d3.axisLeft(yPruningRate)).selectAll("text").attr("fill", "#8b949e");
+        
+        // Pruning explosion threshold line
+        gPruningRate.append("line").attr("class", "line-mean").attr("x1", 0).attr("x2", width).attr("y1", yPruningRate(1.0)).attr("y2", yPruningRate(1.0));
+        gPruningRate.append("text").attr("class", "annotation").attr("x", width + 5).attr("y", yPruningRate(1.0)).attr("fill", "#8b949e").text("1.0");
+        
+        // 2018 highlight
+        gPruningRate.append("rect")
+            .attr("x", xBandPruning(2018) - xBandPruning.bandwidth() * 0.2)
+            .attr("y", 0)
+            .attr("width", xBandPruning.bandwidth() * 1.4)
+            .attr("height", height)
+            .attr("fill", "rgba(248, 81, 73, 0.15)")
+            .attr("rx", 8);
+        
+        // Bars for pruning rate
+        const pruningData = data.filter(d => d.pruningRate !== null);
+        gPruningRate.selectAll(".bar-pr").data(pruningData).enter().append("rect")
+            .attr("x", d => xBandPruning(d.year))
+            .attr("y", d => yPruningRate(Math.min(d.pruningRate, 1.8)))
+            .attr("width", xBandPruning.bandwidth())
+            .attr("height", d => yPruningRate(0) - yPruningRate(Math.min(d.pruningRate, 1.8)))
+            .attr("fill", d => d.pruningRate > 1.0 ? "#f85149" : "#6e40aa")
+            .attr("rx", 4)
+            .style("cursor", "pointer")
+            .on("mouseover", (e, d) => showTooltip(e, d, 'pruning')).on("mouseout", hideTooltip);
+        
+        // Labels for pruning rate
+        gPruningRate.selectAll(".bar-label-pr").data(pruningData).enter().append("text")
+            .attr("x", d => xBandPruning(d.year) + xBandPruning.bandwidth() / 2)
+            .attr("y", d => yPruningRate(Math.min(d.pruningRate, 1.8)) - 5)
+            .attr("text-anchor", "middle")
+            .attr("fill", d => d.pruningRate > 1.0 ? "#f85149" : "#d2a8ff")
+            .attr("font-size", "9px")
+            .attr("font-weight", "600")
+            .text(d => d.pruningRate.toFixed(2));
+        
+        // 2018 annotation
+        gPruningRate.append("text")
+            .attr("class", "annotation-explosion")
+            .attr("x", xBandPruning(2018) + xBandPruning.bandwidth() / 2)
+            .attr("y", 15)
+            .attr("text-anchor", "middle")
+            .text("🔻 淘汰爆発");
+        
+        // ==================== CHART: Ratio ====================
+        const svgRatio = d3.select("#chart-ratio").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom);
+        
+        // Add gradient definition for this SVG
+        const defsRatio = svgRatio.append("defs");
+        defsRatio.append("linearGradient").attr("id", "ratioGradientLocal")
+            .attr("x1", "0%").attr("y1", "100%").attr("x2", "0%").attr("y2", "0%")
+            .selectAll("stop").data([{offset: "0%", color: "rgba(249, 199, 79, 0)"}, {offset: "100%", color: "rgba(249, 199, 79, 0.3)"}])
+            .enter().append("stop").attr("offset", d => d.offset).attr("stop-color", d => d.color);
+        
+        const gRatio = svgRatio.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        const yRatio = d3.scaleLinear().domain([0, 4]).range([height, 0]);
+        gRatio.append("g").attr("class", "grid").call(d3.axisLeft(yRatio).tickSize(-width).tickFormat(""));
+        gRatio.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gRatio.append("g").call(d3.axisLeft(yRatio)).selectAll("text").attr("fill", "#8b949e");
+        gRatio.append("rect").attr("x", 0).attr("y", yRatio(mean + std)).attr("width", width).attr("height", yRatio(mean - std) - yRatio(mean + std)).attr("fill", "rgba(249, 199, 79, 0.1)");
+        gRatio.append("line").attr("class", "line-mean").attr("x1", 0).attr("x2", width).attr("y1", yRatio(mean)).attr("y2", yRatio(mean));
+        gRatio.append("rect").attr("class", "explosion-zone").attr("x", x(2006.5)).attr("y", 0).attr("width", x(2008.5) - x(2006.5)).attr("height", height);
+        gRatio.append("rect").attr("class", "selection-zone").attr("x", x(2017.5)).attr("y", 0).attr("width", x(2018.5) - x(2017.5)).attr("height", height);
+        const areaRatio = d3.area().x(d => x(d.year)).y0(height).y1(d => yRatio(d.ratio)).curve(d3.curveMonotoneX);
+        gRatio.append("path").datum(data).attr("fill", "url(#ratioGradientLocal)").attr("d", areaRatio);
+        gRatio.append("path").datum(data).attr("class", "line line-ratio").attr("d", d3.line().x(d => x(d.year)).y(d => yRatio(d.ratio)).curve(d3.curveMonotoneX)).attr("stroke-width", 4);
+        gRatio.selectAll(".dot-r").data(data).enter().append("circle").attr("class", "dot dot-ratio").attr("cx", d => x(d.year)).attr("cy", d => yRatio(d.ratio)).attr("r", 7).on("mouseover", (e, d) => showTooltip(e, d, 'ratio')).on("mouseout", hideTooltip);
+        gRatio.selectAll(".val-r").data(data).enter().append("text").attr("x", d => x(d.year)).attr("y", d => yRatio(d.ratio) - 12).attr("text-anchor", "middle").attr("fill", "#f9c74f").attr("font-size", "10px").attr("font-weight", "600").text(d => d.ratio.toFixed(2));
+        
+        // ==================== CHART: Log ====================
+        const svgLog = d3.select("#chart-log").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom);
+        const gLog = svgLog.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        const yLog = d3.scaleLog().domain([1, 100]).range([height, 0]);
+        gLog.append("g").attr("class", "grid").call(d3.axisLeft(yLog).tickSize(-width).tickFormat("").tickValues([1, 2, 5, 10, 20, 50, 100]));
+        gLog.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gLog.append("g").call(d3.axisLeft(yLog).tickValues([1, 2, 5, 10, 20, 50, 100]).tickFormat(d3.format("d"))).selectAll("text").attr("fill", "#8b949e");
+        gLog.append("rect").attr("class", "explosion-zone").attr("x", x(2006.5)).attr("y", 0).attr("width", x(2008.5) - x(2006.5)).attr("height", height);
+        gLog.append("rect").attr("class", "selection-zone").attr("x", x(2017.5)).attr("y", 0).attr("width", x(2018.5) - x(2017.5)).attr("height", height);
+        gLog.append("path").datum(data).attr("class", "line line-edges-exist").attr("d", d3.line().x(d => x(d.year)).y(d => yLog(d.edgesExist)).curve(d3.curveMonotoneX));
+        gLog.append("path").datum(data).attr("class", "line line-nodes").attr("d", d3.line().x(d => x(d.year)).y(d => yLog(d.nodes)).curve(d3.curveMonotoneX));
+        gLog.selectAll(".dot-ln").data(data).enter().append("circle").attr("class", "dot dot-nodes").attr("cx", d => x(d.year)).attr("cy", d => yLog(d.nodes)).attr("r", 5).on("mouseover", (e, d) => showTooltip(e, d, 'ratio')).on("mouseout", hideTooltip);
+        gLog.selectAll(".dot-le").data(data).enter().append("circle").attr("class", "dot dot-edges-exist").attr("cx", d => x(d.year)).attr("cy", d => yLog(d.edgesExist)).attr("r", 5).on("mouseover", (e, d) => showTooltip(e, d, 'ratio')).on("mouseout", hideTooltip);
+        gLog.append("text").attr("class", "annotation-highlight").attr("x", x(2015)).attr("y", yLog(30)).attr("text-anchor", "middle").text("平行 → E/N一定");
+        
+        // ==================== DATA TABLE ====================
+        const tableBody = document.getElementById('dataTableBody');
+        data.forEach(d => {
+            const isPruningExplosion = d.pruningRate && d.pruningRate > 1.0;
+            tableBody.innerHTML += `
+                <tr class="${d.explosion ? 'explosion-row' : ''}" style="${isPruningExplosion ? 'background: rgba(248, 81, 73, 0.1);' : ''}">
+                    <td><strong>${d.year}</strong>${d.explosion ? ' 💥' : ''}${isPruningExplosion ? ' 🔻' : ''}</td>
+                    <td style="color: #58a6ff;">${d.nodes}</td>
+                    <td style="color: #3fb950;">${d.edgesExist}</td>
+                    <td style="color: #d2a8ff; font-weight: 600;">${d.knowledge}</td>
+                    <td style="color: #7ee787;">${d.deltaK >= 0 ? '+' : ''}${d.deltaK}</td>
+                    <td style="color: ${d.explosion ? '#ff7b72' : '#8b949e'};">${d.growthRate ? d.growthRate.toFixed(2) : '—'}</td>
+                    <td style="color: #f9c74f;">${d.ratio.toFixed(2)}</td>
+                    <td style="color: #f85149;">${d.edgesAbsent}</td>
+                    <td style="color: ${isPruningExplosion ? '#f85149' : '#8b949e'};">${d.pruningRate ? d.pruningRate.toFixed(2) : '—'}</td>
+                    <td style="font-size: 0.7rem;">${d.event}</td>
+                </tr>
+            `;
+        });
+    </script>
+</body>
+</html>

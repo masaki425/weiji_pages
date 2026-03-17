@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>渡辺英治 思考年表 | サイエンス × アート</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: #ffffff;
+            color: #333;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #222;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        /* Column Headers */
+        .column-headers {
+            display: grid;
+            grid-template-columns: 1fr 120px 1fr;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .column-header {
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .column-header.left {
+            justify-content: flex-end;
+            color: #1565c0;
+        }
+
+        .column-header.right {
+            justify-content: flex-start;
+            color: #c62828;
+        }
+
+        .column-header .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .column-header.left .dot { background: #1565c0; }
+        .column-header.right .dot { background: #c62828; }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+        }
+
+        /* Single central line - neutral dark gray */
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #37474f;
+            transform: translateX(-50%);
+        }
+
+        /* Year Row */
+        .year-row {
+            display: grid;
+            grid-template-columns: 1fr 120px 1fr;
+            position: relative;
+            padding: 15px 0;
+        }
+
+        /* Left Content (Science) */
+        .left-content {
+            text-align: right;
+            padding-right: 20px;
+            position: relative;
+        }
+
+        /* Right Content (Art) */
+        .right-content {
+            text-align: left;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        /* Center - Year Display */
+        .year-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            z-index: 2;
+        }
+
+        .year-dot {
+            width: 20px;
+            height: 20px;
+            background: #37474f;
+            border-radius: 50%;
+            margin-bottom: 6px;
+        }
+
+        .year-row.explosion .year-dot {
+            width: 24px;
+            height: 24px;
+            background: #ff8f00;
+            box-shadow: 0 0 0 4px rgba(255, 143, 0, 0.25);
+        }
+
+        .year-row.selection .year-dot {
+            background: #546e7a;
+        }
+
+        .year-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #222;
+            line-height: 1;
+            background: white;
+            padding: 2px 10px;
+        }
+
+        .year-suffix {
+            font-size: 0.85rem;
+            font-weight: 400;
+        }
+
+        .phase-label {
+            font-size: 0.68rem;
+            color: #888;
+            margin-top: 4px;
+            background: white;
+            padding: 0 5px;
+        }
+
+        .year-badge {
+            font-size: 0.62rem;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+        .year-badge.explosion {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .year-badge.selection {
+            background: #eceff1;
+            color: #546e7a;
+        }
+
+        /* Content Styling */
+        .content-title {
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .left-content .content-title { color: #1565c0; }
+        .right-content .content-title { color: #c62828; }
+
+        .star-blue {
+            color: #1565c0;
+            margin-right: 4px;
+        }
+
+        .star-red {
+            color: #c62828;
+            margin-left: 4px;
+        }
+
+        .content-desc {
+            font-size: 0.8rem;
+            color: #444;
+            line-height: 1.7;
+        }
+
+        .content-desc strong {
+            color: #222;
+        }
+
+        .quote {
+            font-size: 0.73rem;
+            color: #666;
+            font-style: italic;
+            margin-top: 6px;
+            padding: 4px 8px;
+            background: #f5f5f5;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .detail {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .stats {
+            font-size: 0.68rem;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        .empty-content {
+            color: #ccc;
+            font-size: 0.85rem;
+        }
+
+        /* Summary */
+        .summary {
+            margin-top: 50px;
+            padding: 25px;
+            background: #fafafa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary h2 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .summary-value.science { color: #1565c0; }
+        .summary-value.art { color: #c62828; }
+        .summary-value.total { color: #37474f; }
+
+        .summary-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #999;
+            font-size: 0.75rem;
+        }
+
+        .closing {
+            font-style: italic;
+            margin-bottom: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>渡辺英治 思考年表</h1>
+        <div class="subtitle">サイエンス × アート — 二つの軸で追跡する20年の認知構造</div>
+
+        <!-- Column Headers -->
+        <div class="column-headers">
+            <div class="column-header left">
+                <span class="dot"></span>
+                サイエンス（計算論・神経科学）
+            </div>
+            <div></div>
+            <div class="column-header right">
+                アート（詩・哲学・芸術）
+                <span class="dot"></span>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline">
+
+            <!-- 2005 -->
+            <div class="year-row">
+                <div class="left-content">
+                    <div class="content-title"><span class="star-blue">★</span> Map of Brain</div>
+                    <div class="content-desc">
+                        視覚系の神経回路マップ<br>
+                        基盤となる認知構造の構築開始
+                    </div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2005<span class="year-suffix">年</span></div>
+                    <div class="phase-label">基盤構築</div>
+                </div>
+                <div class="right-content">
+                    <div class="empty-content">—</div>
+                </div>
+            </div>
+
+            <!-- 2007 -->
+            <div class="year-row explosion">
+                <div class="left-content">
+                    <div class="content-title"><span class="star-blue">★</span> 神経科学的洞察</div>
+                    <div class="content-desc">
+                        <strong>Consciousness</strong>（意識の核心）<br>
+                        <strong>iCore / RF</strong>「RFがconsciousnessの実体」<br>
+                        Binding Problem / Kebab Illusion発見
+                    </div>
+                    <div class="quote">「!!!great!!!」— Kebab発見の瞬間</div>
+                    <div class="stats">N: +7 / E: +15 / <strong>成長率 733%</strong></div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2007<span class="year-suffix">年</span></div>
+                    <div class="phase-label">核心概念の結晶化</div>
+                    <div class="year-badge explosion">💥 爆発期</div>
+                </div>
+                <div class="right-content">
+                    <div class="content-title">哲学的洞察の誕生<span class="star-red">★</span></div>
+                    <div class="content-desc">
+                        <strong>Silent Consciousness</strong><br>
+                        「π は 無限を 有限にする方法」<br>
+                        黄金比 / こころのかたち
+                    </div>
+                    <div class="quote">「Consciousnessは基本的にsilentであり<br>言葉を発することがない」</div>
+                </div>
+            </div>
+
+            <!-- 2008 -->
+            <div class="year-row explosion">
+                <div class="left-content">
+                    <div class="content-title"><span class="star-blue">★</span> 予測理論の確立</div>
+                    <div class="content-desc">
+                        <strong>Predictive Coding</strong><br>
+                        <strong>Delta Model</strong>（Top-down × Bottom-up）<br>
+                        Flash-lag Effect / Temporal & Spatial Model
+                    </div>
+                    <div class="stats">N: +10 / E: +25 / <strong>成長率 100%</strong></div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2008<span class="year-suffix">年</span></div>
+                    <div class="phase-label">理論体系化</div>
+                    <div class="year-badge explosion">💥 爆発期</div>
+                </div>
+                <div class="right-content">
+                    <div class="content-title">Pop Art宣言<span class="star-red">★</span></div>
+                    <div class="content-desc">
+                        <strong>Pop Art</strong>（四変奏の提唱）<br>
+                        bPopArt / iPopArt / nPopArt / sPopArt
+                    </div>
+                    <div class="quote">「Illusion → Pop Art へ!!」<br>「Art は Illusion そのもの」</div>
+                </div>
+            </div>
+
+            <!-- 2010 -->
+            <div class="year-row">
+                <div class="left-content">
+                    <div class="content-title"><span class="star-blue">★</span> Vision Research 2010</div>
+                    <div class="content-desc">
+                        学術論文発表<br>
+                        <strong>TD Learning</strong> / Dopamine<br>
+                        大脳基底核回路図
+                    </div>
+                    <div class="quote">Motion signals deflect relative positions</div>
+                    <div class="stats">N: +4 / E: +8</div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2010<span class="year-suffix">年</span></div>
+                    <div class="phase-label">学術発表</div>
+                </div>
+                <div class="right-content">
+                    <div class="empty-content">—</div>
+                </div>
+            </div>
+
+            <!-- 2011 -->
+            <div class="year-row">
+                <div class="left-content">
+                    <div class="content-title">Delta Modelの発展</div>
+                    <div class="content-desc">
+                        <strong>Delta Plus Model</strong><br>
+                        予測符号化理論の精緻化
+                    </div>
+                    <div class="stats">N: +2 / E: +3</div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2011<span class="year-suffix">年</span></div>
+                    <div class="phase-label">発展期</div>
+                </div>
+                <div class="right-content">
+                    <div class="empty-content">—</div>
+                </div>
+            </div>
+
+            <!-- 2014 -->
+            <div class="year-row">
+                <div class="left-content">
+                    <div class="content-title">知覚拡張の探求</div>
+                    <div class="content-desc">
+                        Attention / Object File<br>
+                        100ms知覚窓
+                    </div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2014<span class="year-suffix">年</span></div>
+                    <div class="phase-label">拡張期</div>
+                </div>
+                <div class="right-content">
+                    <div class="content-title">Fish Eye Project<span class="star-red">★</span></div>
+                    <div class="content-desc">
+                        非人間的知覚の体験装置構想<br>
+                        「To Singularity」
+                    </div>
+                    <div class="quote">人間の知覚限界を超える</div>
+                </div>
+            </div>
+
+            <!-- 2018 -->
+            <div class="year-row selection">
+                <div class="left-content">
+                    <div class="content-title"><span class="star-blue">★</span> PredNet（Frontiers 2018）</div>
+                    <div class="content-desc">
+                        深層学習による錯視再現<br>
+                        <strong>Rotating Snake</strong>の運動予測成功
+                    </div>
+                    <div class="quote">「DNNが蛇回転錯視の回転運動を予測した」</div>
+                    <div class="detail">⊗ Flash-lag除外</div>
+                    <div class="stats">N: +2 / E: +8 / <strong>淘汰率 133%</strong></div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2018<span class="year-suffix">年</span></div>
+                    <div class="phase-label">選択と集中</div>
+                    <div class="year-badge selection">📉 淘汰期</div>
+                </div>
+                <div class="right-content">
+                    <div class="content-title">概念の収束</div>
+                    <div class="content-desc">
+                        <s>bPopArt / nPopArt / sPopArt</s><br>
+                        → <strong>iPopArt</strong>へ一本化
+                    </div>
+                    <div class="detail">🤫「数式化は不正確」× PredNet（核心的緊張）</div>
+                </div>
+            </div>
+
+            <!-- 2023 -->
+            <div class="year-row">
+                <div class="left-content">
+                    <div class="content-title"><span class="star-blue">★</span> PQR Method</div>
+                    <div class="content-desc">
+                        統合モデルの構想<br>
+                        <strong>Reservoir Computing</strong><br>
+                        White Noise / 夢
+                    </div>
+                    <div class="quote">「Prediction + Q-Learning + Reservoir = PQR」</div>
+                    <div class="stats">N: +6 / E: +12</div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2023<span class="year-suffix">年</span></div>
+                    <div class="phase-label">統合と未来構想</div>
+                </div>
+                <div class="right-content">
+                    <div class="content-title">EIKEN構想<span class="star-red">★</span></div>
+                    <div class="content-desc">
+                        AI × 知覚の融合
+                    </div>
+                    <div class="quote">「LLM + New Perception Model = EIKEN」</div>
+                    <div class="detail">⏳ EIKEN ↔ Consciousness（慎重な保留）</div>
+                </div>
+            </div>
+
+            <!-- 2025 -->
+            <div class="year-row">
+                <div class="left-content">
+                    <div class="content-title">科学と芸術の架橋</div>
+                    <div class="content-desc">
+                        見立て（MITATE）の再活性化<br>
+                        転倒のレトリック
+                    </div>
+                    <div class="detail">→ 最終架橋へ</div>
+                </div>
+                <div class="year-center">
+                    <div class="year-dot"></div>
+                    <div class="year-number">2025<span class="year-suffix">年</span></div>
+                    <div class="phase-label">具現化期</div>
+                </div>
+                <div class="right-content">
+                    <div class="content-title">W Eiji展覧会<span class="star-red">★</span></div>
+                    <div class="content-desc">
+                        <strong>Morning Monsters</strong><br>
+                        ふたりのワタナベエイジ<br>
+                        大府市展覧会 / MITATE
+                    </div>
+                    <div class="quote">「自己を自己じゃなくす」の具現化</div>
+                    <div class="stats">N: +6 / E: +9</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Summary -->
+        <div class="summary">
+            <h2>📊 20年間の統計サマリー</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-value science">24</div>
+                    <div class="summary-label">サイエンス概念</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value art">22</div>
+                    <div class="summary-label">アート概念</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value total">123</div>
+                    <div class="summary-label">総知識量 K = N + E</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" style="color: #37474f;">1.93</div>
+                    <div class="summary-label">E/N比（接続密度）</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="closing">
+                沈黙は最初から在った。そして20年を経て、沈黙はさらに深まっている。——「語るほどに沈黙が深まる」
+            </div>
+            <div>
+                分析日: 2025年12月19日 | データソース: 25冊の手書きノート、2編の学術論文
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

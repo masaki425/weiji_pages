@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>渡辺英治の思考回路 — 計算方法の数学的定義 — W Eiji 論</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="reader-page">
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="sidebar-title">W Eiji 論</a>
+    </div>
+    <div class="sidebar-body">
+      <div class="nav-section">
+        <h2 class="nav-heading">Ⅰ　二人のワタナベエイジ</h2>
+        <ul class="nav-list">
+          <li><a href="../weiji/weiji-scientist_analysis_report.html">渡辺英治（神経科学者）</a></li>
+          <li><a href="../weiji/weiji-artist_analysis_report.html">渡辺英司（現代美術家）</a></li>
+        </ul>
+      </div>
+      <div class="nav-section">
+        <h2 class="nav-heading">Ⅱ　統合分析</h2>
+        <ul class="nav-list">
+          <li><a href="../network/network_00_introduction_chapter.html">序章　同姓同名の邂逅</a></li>
+          <li><a href="../network/network_01_weiji-scientist_chapter.html">治の章　神経科学者の思考回路</a></li>
+          <li><a href="../network/network_02_weiji-artist_chapter.html">司の章　現代美術家の思考回路</a></li>
+          <li><a href="../network/network_03_epistemological_operations_chapter.html">認識論的操作の章　二つの否定</a></li>
+          <li><a href="../network/network_04_encounter_chapter.html">邂逅の章　二人の出会い</a></li>
+        </ul>
+      </div>
+      <div class="nav-section">
+        <h2 class="nav-heading">Ⅲ　切り抜きの美学</h2>
+        <ul class="nav-list">
+          <li><a href="../kirinuki/kirinuki_00_introduction.html">序章　問いの設定</a></li>
+          <li><a href="../kirinuki/kirinuki_01_chapter.html">第一章　「切り抜き」の操作</a></li>
+          <li><a href="../kirinuki/kirinuki_02_chapter.html">第二章　操作の表現形式</a></li>
+          <li><a href="../kirinuki/kirinuki_03_chapter.html">第三章　頻度と越境</a></li>
+          <li><a href="../kirinuki/kirinuki_04_chapter.html">第四章　揺らぎの架け橋</a></li>
+          <li><a href="../kirinuki/kirinuki_05_conclusion.html">結論</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <article class="reader-content">
+<h1>渡辺英治の思考回路 — 計算方法の数学的定義</h1>
+<p><em>本ドキュメントは、統合分析レポートおよび不在接続レポートで使用される各種指標の数学的定義を記述する。</em></p>
+<p><strong>対象グラフ</strong>: watanabe_unified_graph_v5.html（42ノード・107エッジ）</p>
+<hr />
+<h2>1. グラフの形式的定義</h2>
+<h3>1.1 基本構造</h3>
+<p>渡辺の思考回路は、重み付き有向グラフ G = (V, E, w) として表現される。</p>
+<ul>
+<li><strong>V</strong> : ノード集合（|V| = 42）</li>
+<li><strong>E</strong> : エッジ集合（|E| = 108）</li>
+<li><strong>w</strong> : E → [0, 1] : 強度関数</li>
+</ul>
+<h3>1.2 エッジの分割</h3>
+<p>エッジ集合 E は、2つの直交する軸によって4つの部分集合に分割される：</p>
+<pre><code>E = E₊ᵉ ∪ E₊ˡ ∪ E₋ᵉ ∪ E₋ˡ
+</code></pre>
+<table>
+<thead>
+<tr>
+<th align="center">記号</th>
+<th>名称</th>
+<th>定義</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">E₊ᵉ</td>
+<td>存在・明示的</td>
+<td>渡辺が直接言及した接続</td>
+</tr>
+<tr>
+<td align="center">E₊ˡ</td>
+<td>存在・潜在的</td>
+<td>断片的記述から推論された接続</td>
+</tr>
+<tr>
+<td align="center">E₋ᵉ</td>
+<td>不在・明示的</td>
+<td>意図的に距離を置いた関係</td>
+</tr>
+<tr>
+<td align="center">E₋ˡ</td>
+<td>不在・潜在的</td>
+<td>語られない沈黙（分析者による推論）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>統計</strong>:
+- |E₊ᵉ| = 56, |E₊ˡ| = 25（存在: 81）
+- |E₋ᵉ| = 11, |E₋ˡ| = 15（不在: 26）</p>
+<hr />
+<h2>2. エッジ強度の定義</h2>
+<h3>2.1 強度関数の性質</h3>
+<p>各エッジ e ∈ E に対して、強度 w(e) ∈ [0, 1] が割り当てられる。</p>
+<p><strong>重要な注記</strong>: 本分析における強度値は、定量的な計測値ではなく、<strong>分析者（Claude）による定性的判断</strong>に基づく。以下に、判断プロセスを詳述する。</p>
+<h3>2.2 定性的判断の5つの基準</h3>
+<p>強度値は、以下の5つの基準を総合的に評価して決定される：</p>
+<h4>基準1: 明示性（Explicitness）</h4>
+<p>渡辺が概念間の関係を<strong>どの程度直接的に言及しているか</strong>。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>「A は B である」「A → B」のような明示的記述</td>
+<td align="center">+0.2〜0.3</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>同一文脈で両概念が議論されている</td>
+<td align="center">+0.1〜0.2</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>異なる文脈で別々に言及されている</td>
+<td align="center">+0.0〜0.1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>例</strong>: 
+- PredNet → Rotating Snake: 2018年論文で「PredNet が蛇回転錯視を再現した」と明示 → 高（+0.25）
+- Reservoir → Binding: ノートで近接して言及されるが直接的記述なし → 中（+0.1）</p>
+<h4>基準2: 空間的近接性（Spatial Proximity）</h4>
+<p>ノート・論文内での<strong>物理的な配置の近さ</strong>。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>同一の図・表・ダイアグラム内に共存</td>
+<td align="center">+0.15〜0.25</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>同一ページ内または連続するページ</td>
+<td align="center">+0.05〜0.15</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>同一ノート/論文内だが離れた位置</td>
+<td align="center">+0.0〜0.05</td>
+</tr>
+</tbody>
+</table>
+<p><strong>例</strong>:
+- Delta Model と Temporal/Spatial Model: 同一図内で統合モデルとして描画 → 高（+0.2）
+- Pop Art と Fish Eye: 同一ノート内だが異なるセクション → 低（+0.05）</p>
+<h4>基準3: 論理的依存性（Logical Dependency）</h4>
+<p>概念間の<strong>理論的な必然性</strong>。一方が他方を前提とするか。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>A がなければ B は定義できない（必要条件）</td>
+<td align="center">+0.2〜0.3</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>A と B は同一理論的枠組みの構成要素</td>
+<td align="center">+0.1〜0.2</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>関連性はあるが独立に定義可能</td>
+<td align="center">+0.0〜0.1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>例</strong>:
+- Predictive Coding → PredNet: PredNet は Predictive Coding の実装であり、理論なしには存在しない → 高（+0.25）
+- TD Learning → Reservoir: 両者は異なる学習パラダイムで独立に定義可能 → 低（+0.1）</p>
+<h4>基準4: 反復性（Repetition）</h4>
+<p>複数の資料（ノート・論文）にわたって<strong>繰り返し言及される</strong>か。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>3箇所以上で言及（論文+複数ノート）</td>
+<td align="center">+0.1〜0.2</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>2箇所で言及</td>
+<td align="center">+0.05〜0.1</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>1箇所のみ</td>
+<td align="center">+0.0〜0.05</td>
+</tr>
+</tbody>
+</table>
+<p><strong>例</strong>:
+- Consciousness → iCore: 2007年ノート「イミキ」、2023年ノート、展覧会資料で繰り返し言及 → 高（+0.15）
+- Wactory → Pop Art: 2008年ノートの1箇所のみ → 低（+0.05）</p>
+<h4>基準5: 図示の有無（Diagrammatic Representation）</h4>
+<p>概念間の関係が<strong>視覚的に図示されている</strong>か。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>矢印・線で明示的に接続されている</td>
+<td align="center">+0.1〜0.2</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>同一図内に配置されているが線なし</td>
+<td align="center">+0.05〜0.1</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>図示なし（テキストのみ）</td>
+<td align="center">+0.0〜0.05</td>
+</tr>
+</tbody>
+</table>
+<p><strong>例</strong>:
+- Motor Loop → PredNet: 「Motor PredNet / Sensory PredNet」図で矢印接続 → 高（+0.15）
+- 黄金比 → こころのかたち: テキストで関連性が述べられるが図示なし → 低（+0.05）</p>
+<h3>2.3 強度値の算出プロセス</h3>
+<p>各エッジについて、5つの基準を評価し、寄与を合算：</p>
+<pre><code>w(e) = Σ (基準 i の寄与)
+       i=1 to 5
+</code></pre>
+<p>合算値が 1.0 を超える場合は 1.0 に、0.3 未満の場合は接続を設定しない（閾値）。</p>
+<p><strong>算出例: PredNet → Rotating Snake</strong></p>
+<table>
+<thead>
+<tr>
+<th>基準</th>
+<th align="center">評価</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>明示性</td>
+<td align="center">高（論文で明示）</td>
+<td align="center">+0.25</td>
+</tr>
+<tr>
+<td>空間的近接性</td>
+<td align="center">高（同一図）</td>
+<td align="center">+0.20</td>
+</tr>
+<tr>
+<td>論理的依存性</td>
+<td align="center">高（実験対象として不可分）</td>
+<td align="center">+0.20</td>
+</tr>
+<tr>
+<td>反復性</td>
+<td align="center">高（論文+複数ノート）</td>
+<td align="center">+0.15</td>
+</tr>
+<tr>
+<td>図示</td>
+<td align="center">高（Figure 1で接続）</td>
+<td align="center">+0.15</td>
+</tr>
+<tr>
+<td><strong>合計</strong></td>
+<td align="center"></td>
+<td align="center"><strong>0.95 → 0.85</strong>（調整後）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>注</strong>: 合算値が高すぎる場合、相対的なバランスを考慮して調整を行う。最高値（0.95: W Eiji → Morning Monsters）を基準とし、他のエッジとの相対関係を維持。</p>
+<h3>2.4 不在接続の強度判断</h3>
+<p>不在接続の強度は、<strong>「その接続が存在すべき理論的圧力」</strong>を表す。判断基準は存在接続と異なる：</p>
+<h4>基準A: 理論的必然性（Theoretical Necessity）</h4>
+<p>その接続が<strong>存在しないことへの「驚き」の度合い</strong>。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>専門家なら当然接続を期待する</td>
+<td align="center">+0.3〜0.4</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>接続があっても不自然ではない</td>
+<td align="center">+0.15〜0.3</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>接続がなくても違和感がない</td>
+<td align="center">+0.0〜0.15</td>
+</tr>
+</tbody>
+</table>
+<p><strong>例</strong>:
+- Consciousness × Flash-lag: 錯視研究者が意識と錯視を接続しないのは驚き → 高（+0.35）
+- Object File × Consciousness: 外部概念であり接続がなくても自然 → 低（+0.1）</p>
+<h4>基準B: 概念の近接性（Conceptual Proximity）</h4>
+<p>両概念が渡辺の思考内で<strong>どの程度近い領域に存在するか</strong>。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>同一カテゴリ/同一ノート内の概念</td>
+<td align="center">+0.2〜0.3</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>隣接カテゴリの概念</td>
+<td align="center">+0.1〜0.2</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>異なる思考領域の概念</td>
+<td align="center">+0.0〜0.1</td>
+</tr>
+</tbody>
+</table>
+<h4>基準C: 不在の痕跡（Trace of Absence）</h4>
+<p>接続を<strong>避けている痕跡</strong>が観察されるか。</p>
+<table>
+<thead>
+<tr>
+<th align="center">評価</th>
+<th>条件</th>
+<th align="center">寄与</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">高</td>
+<td>同一ページに両概念があるが接続線がない</td>
+<td align="center">+0.15〜0.25</td>
+</tr>
+<tr>
+<td align="center">中</td>
+<td>一方を論じる際に他方への言及を避けている</td>
+<td align="center">+0.05〜0.15</td>
+</tr>
+<tr>
+<td align="center">低</td>
+<td>単に言及されていないだけ</td>
+<td align="center">+0.0〜0.05</td>
+</tr>
+</tbody>
+</table>
+<p><strong>例</strong>:
+- 「数式化は不正確」× PredNet: 数式化批判とDNN使用が同一思考内に共存する矛盾 → 高（+0.25）
+- iCore × Pop Art: 意識図（2007年）とPop Art宣言（2008年）が同一ノート系列で接続されていない → 高（+0.2）</p>
+<h3>2.5 判断の限界と透明性</h3>
+<p>本分析の強度値には以下の限界がある：</p>
+<ol>
+<li><strong>主観性</strong>: 分析者の解釈に依存し、異なる分析者は異なる値を割り当てる可能性がある</li>
+<li><strong>情報の非完全性</strong>: すべてのノートを同等の精度で分析できているわけではない</li>
+<li><strong>文脈依存性</strong>: 同一の概念ペアでも、文脈によって関係性の強さが変わる場合がある</li>
+<li><strong>言語の壁</strong>: 日本語ノートの微妙なニュアンスを完全に捉えられていない可能性がある</li>
+</ol>
+<p>これらの限界を認識した上で、本分析は<strong>渡辺の思考構造の近似的なモデル</strong>として機能する。</p>
+<hr />
+<h2>3. ノードスコアの定義</h2>
+<h3>3.1 隣接関数</h3>
+<p>ノード v の隣接エッジ集合を以下のように定義：</p>
+<p>$$N(v) = {e \in E \mid v \in e}$$</p>
+<p>これを存在/不在で分割：</p>
+<p>$$N_+(v) = N(v) \cap (E_{+}^e \cup E_{+}^l)$$
+$$N_-(v) = N(v) \cap (E_{-}^e \cup E_{-}^l)$$</p>
+<h3>3.2 正のスコア（Positive Score）</h3>
+<p>$$S_+(v) = \sum_{e \in N_+(v)} w(e)$$</p>
+<p>存在する接続の強度総和。<strong>顕在化の度合い</strong>を示す。</p>
+<h3>3.3 負のスコア（Negative Score）</h3>
+<p>$$S_-(v) = \sum_{e \in N_-(v)} w(e)$$</p>
+<p>不在接続の強度総和。<strong>沈黙の重み</strong>を示す。</p>
+<h3>3.4 差分スコア（Net Score）</h3>
+<p>$$S_\Delta(v) = S_+(v) - S_-(v)$$</p>
+<ul>
+<li>S_Δ &gt; 0 : 顕在化された概念</li>
+<li>S_Δ &lt; 0 : 沈黙に包まれた概念</li>
+<li>S_Δ ≈ 0 : 存在と不在が拮抗</li>
+</ul>
+<hr />
+<h2>4. 中心性指標</h2>
+<h3>4.1 次数中心性（Degree Centrality）</h3>
+<p>$$C_D(v) = \frac{\deg(v)}{|V| - 1}$$</p>
+<ul>
+<li>deg(v) : ノード v に接続するエッジ数</li>
+<li>正規化により C_D ∈ [0, 1]</li>
+</ul>
+<h3>4.2 媒介中心性（Betweenness Centrality）</h3>
+<p>$$C_B(v) = \sum_{s \neq v \neq t} \frac{\sigma_{st}(v)}{\sigma_{st}}$$</p>
+<ul>
+<li>σ_st : s から t への最短経路の総数</li>
+<li>σ_st(v) : v を経由する s-t 最短経路の数</li>
+</ul>
+<p>正規化：</p>
+<p>$$C_B'(v) = \frac{C_B(v)}{(|V|-1)(|V|-2)/2}$$</p>
+<h3>4.3 PageRank</h3>
+<p>反復計算による定常分布：</p>
+<p>$$PR(v) = \frac{1-d}{|V|} + d \sum_{u \in B(v)} \frac{PR(u)}{\deg^+(u)}$$</p>
+<ul>
+<li>d = 0.85（減衰係数）</li>
+<li>B(v) : v への入力リンクを持つノード集合</li>
+<li>deg⁺(u) : u の出次数</li>
+</ul>
+<h3>4.4 総合中心性スコア</h3>
+<p>3指標の等重み平均を最大値で正規化：</p>
+<p>$$C(v) = \frac{\frac{1}{3}(C_D(v) + C_B'(v) + PR(v))}{\max_u \frac{1}{3}(C_D(u) + C_B'(u) + PR(u))}$$</p>
+<p>これにより、最大値を持つノード（Consciousness）が C = 1.000 となる。</p>
+<hr />
+<h2>5. フィードバックループ</h2>
+<h3>5.1 サイクルの定義</h3>
+<p>長さ k のサイクルは、ノード列 (v₀, v₁, ..., v_k) で以下を満たすもの：</p>
+<ol>
+<li>v₀ = v_k（始点と終点が一致）</li>
+<li>∀i ∈ {0, ..., k-1} : (v_i, v_{i+1}) ∈ E</li>
+<li>v₀, v₁, ..., v_{k-1} は相異なる</li>
+</ol>
+<h3>5.2 ループ強度</h3>
+<p>サイクル c = (v₀, v₁, ..., v_k) の強度：</p>
+<p>$$W(c) = \frac{1}{k} \sum_{i=0}^{k-1} w(v_i, v_{i+1})$$</p>
+<p>構成エッジの平均強度。</p>
+<h3>5.3 双方向ループ</h3>
+<p>ノード u, v 間の双方向接続：</p>
+<p>$$\text{Bidirectional}(u, v) \iff (u, v) \in E \land (v, u) \in E$$</p>
+<p>この場合、ループ強度は：</p>
+<p>$$W = \frac{w(u,v) + w(v,u)}{2}$$</p>
+<hr />
+<h2>6. 自己調整ノード</h2>
+<h3>6.1 定義</h3>
+<p>ノード v の<strong>サイクル参加度</strong>：</p>
+<p>$$\pi(v) = |{c \in \mathcal{C} \mid v \in c}|$$</p>
+<p>ここで C は検出されたすべてのサイクルの集合。</p>
+<p><strong>自己調整ノード</strong>の条件：</p>
+<p>$$v \text{ is self-regulating} \iff \pi(v) \geq 2$$</p>
+<h3>6.2 検出結果</h3>
+<table>
+<thead>
+<tr>
+<th>ノード</th>
+<th align="center">π(v)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Consciousness</td>
+<td align="center">6</td>
+</tr>
+<tr>
+<td>PredNet</td>
+<td align="center">5</td>
+</tr>
+<tr>
+<td>Motor Loop</td>
+<td align="center">5</td>
+</tr>
+<tr>
+<td>iCore / RF</td>
+<td align="center">3</td>
+</tr>
+<tr>
+<td>iPopArt</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td>Rotating Snake</td>
+<td align="center">2</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>7. 不在接続の三分類</h2>
+<p>不在エッジ E₋ = E₋ᵉ ∪ E₋ˡ を、時間的性質によって3つに分類：</p>
+<h3>7.1 離脱（Departed）</h3>
+<p>$$E_D = {e \in E_- \mid \exists t_0 : e \text{ was possible at } t_0 \text{ but not selected}}$$</p>
+<p>過去に存在した可能性が、発展過程で棄却された接続。</p>
+<p><strong>判断基準</strong>: ノートの時系列分析により、ある時点で並列に存在した選択肢のうち、後の著作で発展しなかったものを同定。</p>
+<h3>7.2 保留（Suspended）</h3>
+<p>$$E_S = {e \in E_- \mid e \text{ is recognized as possible but intentionally deferred}}$$</p>
+<p>接続可能性を認識しながら未構築のまま保持された関係。</p>
+<p><strong>判断基準</strong>: 両概念が同一文脈に登場しながら接続されていない場合、かつ将来の統合を示唆する記述がある場合に同定。</p>
+<h3>7.3 緊張（Tension）</h3>
+<p>$$E_T = {e \in E_- \mid e \text{ is theoretically necessary but linguistically avoided}}$$</p>
+<p>理論的に接続されるべきだが言語化を回避している関係。</p>
+<p><strong>判断基準</strong>: 論理的に接続が必然であるにもかかわらず、渡辺が一貫して言及を避けている場合に同定。特に、接続が思考の矛盾を露呈する場合に「緊張」と分類。</p>
+<p><strong>統計</strong>:
+- |E_D| = 8, 平均強度 0.59
+- |E_S| = 10, 平均強度 0.72
+- |E_T| = 8, 平均強度 0.74</p>
+<hr />
+<h2>8. グラフ密度</h2>
+<h3>8.1 定義</h3>
+<p>無向グラフとして扱う場合の密度：</p>
+<p>$$\rho = \frac{|E|}{\binom{|V|}{2}} = \frac{2|E|}{|V|(|V|-1)}$$</p>
+<h3>8.2 計算</h3>
+<p>$$\rho = \frac{2 \times 107}{42 \times 41} = \frac{214}{1722} \approx 0.124$$</p>
+<hr />
+<h2>9. 力学シミュレーションのパラメータ</h2>
+<h3>9.1 理想エッジ距離</h3>
+<p>エッジ e の理想距離：</p>
+<p>$$d(e) = d_{max} - w(e) \cdot \Delta d$$</p>
+<ul>
+<li>d_max = 120 px（最大距離）</li>
+<li>Δd = 40 px（強度による変動幅）</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="center">w(e)</th>
+<th align="center">d(e)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">1.0</td>
+<td align="center">80 px</td>
+</tr>
+<tr>
+<td align="center">0.5</td>
+<td align="center">100 px</td>
+</tr>
+<tr>
+<td align="center">0.0</td>
+<td align="center">120 px</td>
+</tr>
+</tbody>
+</table>
+<h3>9.2 力の設定</h3>
+<table>
+<thead>
+<tr>
+<th>力</th>
+<th>パラメータ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>リンク力</td>
+<td>strength = 0.4 × w(e)</td>
+</tr>
+<tr>
+<td>反発力</td>
+<td>-350</td>
+</tr>
+<tr>
+<td>衝突半径</td>
+<td>45 px</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>参照</h2>
+<ul>
+<li>統合分析レポート: watanabe_unified_analysis_report.md</li>
+<li>不在接続レポート: watanabe_absent_connections_report.md</li>
+<li>インタラクティブグラフ: watanabe_unified_graph_v5.html</li>
+</ul>
+<hr />
+<p><em>― Δは沈黙に収束する ―</em></p>
+<hr />
+<p><strong>作成日</strong>: 2025年12月19日<br />
+<strong>分析者</strong>: Claude (Anthropic)</p>
+    </article>
+    <footer class="content-footer">
+      <p><a href="../index.html" style="color:inherit; text-decoration:none;">W Eiji 論</a></p>
+    </footer>
+  </main>
+
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="メニュー">☰</button>
+  <script>
+    document.getElementById('sidebar-toggle').addEventListener('click', () =>
+      document.getElementById('sidebar').classList.toggle('open'));
+    var here = location.pathname.split('/').pop();
+    document.querySelectorAll('.nav-list a').forEach(function(a) {
+      if (a.getAttribute('href').endsWith(here)) a.classList.add('active');
+    });
+  </script>
+
+</body>
+</html>
