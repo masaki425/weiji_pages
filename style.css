@@ -23,7 +23,7 @@
   --mono: "SF Mono", "Consolas", "Liberation Mono", monospace;
 }
 
-html { font-size: 17px; }
+html { font-size: 19px; }
 
 body {
   font-family: var(--font);
@@ -58,7 +58,7 @@ body {
 }
 
 .sidebar-title {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: #fff;
   text-decoration: none;
@@ -76,7 +76,7 @@ body {
 }
 
 .nav-heading {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   padding: 8px 16px 4px;
@@ -97,7 +97,7 @@ body {
 
 .nav-list a {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   color: rgba(255,255,255,0.8);
   text-decoration: none;
   padding: 4px 16px;
@@ -136,20 +136,20 @@ body {
 }
 
 .content-body {
-  max-width: 680px;
+  max-width: 860px;
   padding: 40px 40px 60px;
   flex: 1;
 }
 
 .content-body h1 {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 4px;
 }
 
 .lead {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--fg2);
   margin: 0 0 28px;
 }
@@ -161,7 +161,7 @@ body {
 }
 
 .abstract p {
-  font-size: 16px;
+  font-size: 18px;
   color: var(--fg2);
   margin-bottom: 8px;
   line-height: 1.8;
@@ -170,7 +170,7 @@ body {
 .abstract p:last-child { margin-bottom: 0; }
 
 .content-body h2 {
-  font-size: 18px;
+  font-size: 21px;
   font-weight: 700;
   margin: 32px 0 12px;
   padding-bottom: 6px;
@@ -183,14 +183,14 @@ body {
 }
 
 .structure dt {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   margin-top: 16px;
   color: var(--fg);
 }
 
 .structure dd {
-  font-size: 15px;
+  font-size: 17px;
   color: var(--fg2);
   margin: 4px 0 0;
   line-height: 1.8;
@@ -253,7 +253,7 @@ body {
 
 .reader-header {
   padding: 20px 40px 0;
-  max-width: 680px;
+  max-width: 860px;
 }
 
 .reader-back {
@@ -265,12 +265,12 @@ body {
 .reader-back:hover { text-decoration: underline; }
 
 .reader-content {
-  max-width: 680px;
+  max-width: 860px;
   padding: 16px 40px 60px;
 }
 
 .reader-content h1 {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 24px 0 8px;
@@ -278,7 +278,7 @@ body {
 }
 
 .reader-content h2 {
-  font-size: 20px;
+  font-size: 23px;
   font-weight: 700;
   margin: 32px 0 8px;
   padding-top: 16px;
@@ -286,19 +286,19 @@ body {
 }
 
 .reader-content h3 {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   margin: 24px 0 6px;
 }
 
 .reader-content h4 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   margin: 16px 0 4px;
 }
 
 .reader-content p {
-  font-size: 16px;
+  font-size: 18px;
   margin-bottom: 12px;
   line-height: 1.8;
 }
@@ -319,7 +319,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   margin: 16px 0;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .reader-content th,
@@ -373,7 +373,7 @@ body {
 .reader-content ul,
 .reader-content ol {
   margin: 8px 0 12px 20px;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .reader-content li {
