@@ -4,16 +4,13 @@
 
 https://masaki425.github.io/weiji_pages/
 
-## 17冊の手書きノート
-
+17冊の手書きノート
 https://figshare.com/articles/thesis/Idea_Notebooks/25051430
 https://figshare.com/articles/thesis/Idea_sketchbooks/25066571
 
-## 学術論文
-
+学術論文
 https://www.sciencedirect.com/science/article/pii/S0042698910004669
 https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2018.00345/full
 
-## Art Obulist
-
+Art Obulist
 https://artobulist.jimdofree.com
